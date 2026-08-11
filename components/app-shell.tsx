@@ -178,76 +178,111 @@ export function AppShell() {
       </header>
       {page === "home" && (
         <main className="shell">
-            <section className="hero">
+          <section className="hero">
             <div>
-                <span className="eyebrow">
-                Apprendre, progresser, être accompagné
-                </span>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "18px",
+                  marginBottom: "30px",
+                }}
+              >
+                <Image
+                  src="/logo/DG.png"
+                  alt="Portrait du fondateur"
+                  width={72}
+                  height={72}
+                  style={{
+                    width: "72px",
+                    height: "72px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "2px solid #dbeafe",
+                  }}
+                />
 
-                <h1>
-                Les langues ouvrent
-                <br />
-                des portes. Ensemble,
-                <br />
-                franchissons-les.
-                </h1>
-                <p>
-                    Cours de français, cours d'allemand et accompagnement personnalisé pour réussir votre intégration et développer votre avenir.
-                </p>
-                {/* <p>
-                Des cours de français et d'allemand,
-                des séances en direct et un accompagnement humain
-                pour avancer avec confiance.
-                </p> */}
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      color: "#172554",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    Mot du fondateur
+                  </div>
 
-                <div className="actions">
-                <button
-                    className="btn primary"
-                    onClick={() => go("signup")}
-                >
-                    Commencer à partir de 25 €
-                </button>
-
-                <button
-                    className="btn secondary"
-                    onClick={() =>
-                    document
-                        .getElementById("services")
-                        ?.scrollIntoView({ behavior: "smooth" })
-                    }
-                >
-                    Découvrir les services
-                </button>
+                  <div
+                    style={{
+                      fontStyle: "italic",
+                      color: "#64748b",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    « Mieux parler,
+                    <br />
+                    c'est mieux s'intégrer. »
+                  </div>
                 </div>
+              </div>
+
+              <span className="eyebrow">Apprendre, progresser, être accompagné</span>
+
+              <h1>
+                Apprendre une langue.
+                <br />
+                Construire son avenir.
+              </h1>
+
+              <p>
+                Cours de français, cours d'allemand et accompagnement personnalisé pour
+                réussir votre intégration et développer votre avenir.
+              </p>
+
+              <div className="actions">
+                <button className="btn primary" onClick={() => go("signup")}>
+                  Commencer à partir de 25 €
+                </button>
+
+                <button
+                  className="btn secondary"
+                  onClick={() =>
+                    document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                >
+                  Découvrir les services
+                </button>
+              </div>
             </div>
 
             <div className="heroCard">
-                <div
+              <div
                 style={{
-                    fontSize: "14px",
-                    opacity: 0.75,
-                    marginBottom: "15px",
+                  fontSize: "14px",
+                  opacity: 0.75,
+                  marginBottom: "15px",
                 }}
-                >
+              >
                 VOTRE PARCOURS
-                </div>
+              </div>
 
-                <h2
+              <h2
                 style={{
-                    fontSize: "30px",
-                    lineHeight: 1.3,
-                    marginBottom: "25px",
+                  fontSize: "30px",
+                  lineHeight: 1.3,
+                  marginBottom: "25px",
                 }}
-                >
+              >
                 Un espace simple pour
                 <br />
                 progresser à votre rythme
-                </h2>
+              </h2>
 
-                <div className="mini">
+              <div className="mini">
                 <strong>🎬 Cours en vidéo</strong>
                 Disponibles quand vous le souhaitez
-                </div>
+              </div>
 
                 <div className="mini">
                 <strong>🎥 Sessions LIVE</strong>
@@ -454,10 +489,10 @@ export function AppShell() {
                 </section>
 
 
-            <div className="footer">
+            {/* <div className="footer">
             <p>© 2026 Mara-Sprach Team</p>
             <p>Français • Allemand • Accompagnement</p>
-            </div>
+            </div> */}
         </main>
         )}
       {page === "signup" && (
@@ -645,7 +680,9 @@ export function AppShell() {
           </div>
         </main>
       )}
-      <div className="footer">Ensemble MVP • Mode démo sans clés externes</div>
+      <div className="footer">
+        <p>Par Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Cours de (Français • Allemand) et Accompagnement]</p>
+      </div>
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
