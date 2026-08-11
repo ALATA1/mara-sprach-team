@@ -410,7 +410,7 @@ export function AppShell() {
                         margin: "20px 0",
                         }}
                     >
-                        50 €
+                        40 €
                     </div>
 
                     <p>✓ Cours complets</p>
@@ -436,7 +436,7 @@ export function AppShell() {
                         margin: "20px 0",
                         }}
                     >
-                        75 €
+                        50 €
                     </div>
 
                     <p>✓ Tout Standard</p>
