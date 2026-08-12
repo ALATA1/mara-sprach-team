@@ -191,14 +191,16 @@ export function AppShell() {
                 <Image
                   src="/logo/DG.png"
                   alt="Portrait du fondateur"
-                  width={72}
-                  height={72}
+                  width={92}
+                  height={92}
                   style={{
-                    width: "72px",
-                    height: "72px",
+                    width: "92px",
+                    height: "92px",
                     borderRadius: "50%",
                     objectFit: "cover",
+                    objectPosition: "center top",
                     border: "2px solid #dbeafe",
+                    background: "#e7efff",
                   }}
                 />
 
