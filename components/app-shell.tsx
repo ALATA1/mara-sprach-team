@@ -52,7 +52,8 @@ export function AppShell() {
     [selected, setSelected] = useState(courses[0]),
     [registered, setRegistered] = useState<number[]>([]),
     [support, setSupport] = useState(false),
-    [toast, setToast] = useState("");
+    [toast, setToast] = useState(""),
+    [photoOpen, setPhotoOpen] = useState(false);
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("ensemble-v1") || "null");
@@ -198,10 +199,12 @@ export function AppShell() {
                     height: "92px",
                     borderRadius: "50%",
                     objectFit: "cover",
-                    objectPosition: "center top",
+                    objectPosition: "center 14%",
                     border: "2px solid #dbeafe",
                     background: "#e7efff",
+                    cursor: "pointer",
                   }}
+                  onClick={() => setPhotoOpen(true)}
                 />
 
                 <div>
@@ -683,6 +686,36 @@ export function AppShell() {
         <p>Par Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Cours de (Français • Allemand) et Accompagnement]</p>
       </div>
       {toast && <div className="toast">{toast}</div>}
+      {photoOpen && (
+        <div className="photoModal" onClick={() => setPhotoOpen(false)}>
+          <button
+            className="closePhotoBtn"
+            type="button"
+            aria-label="Fermer l'image"
+            onClick={() => setPhotoOpen(false)}
+          >
+            ×
+          </button>
+          <div className="photoModalCard" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src="/logo/DG.png"
+              alt="Portrait du fondateur agrandi"
+              width={900}
+              height={900}
+              priority
+              style={{
+                width: "100%",
+                maxWidth: "620px",
+                height: "auto",
+                borderRadius: "24px",
+                objectFit: "cover",
+                objectPosition: "center 10%",
+                background: "#e7efff",
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

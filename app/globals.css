@@ -302,6 +302,36 @@ select {
   padding: 14px 18px;
   border-radius: 14px;
 }
+.photoModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.78);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 24px;
+}
+.photoModalCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.closePhotoBtn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #172554;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 101;
+}
 .footer {
   text-align: center;
   color: #7b8190;
