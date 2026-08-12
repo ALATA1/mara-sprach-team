@@ -227,17 +227,14 @@ export function AppShell() {
                 </div>
               </div>
 
-              <span className="eyebrow">Apprendre, progresser, être accompagné</span>
+              <span className="eyebrow">Apprendre, progresser, être accompagné.</span>
 
               <h1>
-                Apprendre une langue.
-                <br />
-                Construire son avenir.
+                Apprendre une langue et construire un avenir.
               </h1>
 
               <p>
-                Cours de français, cours d'allemand et accompagnement personnalisé pour
-                réussir votre intégration et développer votre avenir.
+                Cours de français, cours d’allemand et accompagnement personnalisé pour réussir votre intégration, progresser et construire votre avenir.
               </p>
 
               <div className="actions">
