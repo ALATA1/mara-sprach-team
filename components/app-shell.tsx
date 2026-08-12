@@ -700,6 +700,9 @@ export function AppShell() {
                   <select>
                     <option>Démarches administratives</option>
                     <option>Aide numérique</option>
+                    <option>Cours de français</option>
+                    <option>Cours d'Allemand</option>
+                    <option>Autres</option>
                   </select>
                 </div>
                 <div className="field">
