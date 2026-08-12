@@ -546,10 +546,10 @@ export function AppShell() {
                     marginBottom: "20px",
                 }}
                 >
-                📚
+                
                 </div>
 
-                <h3>Français et allemand</h3>
+                <h3> 📚 Français et allemand</h3>
 
                 <p className="muted">
                 Des parcours organisés par niveau avec vidéos,
@@ -571,10 +571,10 @@ export function AppShell() {
                     marginBottom: "20px",
                 }}
                 >
-                💬
+                
                 </div>
 
-                <h3>Cours en direct</h3>
+                <h3> 🎥 Cours en direct</h3>
 
                 <p className="muted">
                 Participez à des séances collectives
@@ -596,10 +596,10 @@ export function AppShell() {
                     marginBottom: "20px",
                 }}
                 >
-                🧭
+                
                 </div>
 
-                <h3>Aide personnalisée</h3>
+                <h3>🧭 Aide personnalisée</h3>
 
                 <p className="muted">
                 Déposez une demande et suivez sa
