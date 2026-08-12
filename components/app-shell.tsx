@@ -24,7 +24,6 @@ type LiveSession = {
   startAt?: string;
 };
 
-const GOOGLE_MEET_NEW_URL = "https://meet.google.com/new";
 const JITSI_LIVE_URLS = [
   "https://meet.jit.si/MaraSprachA1Live",
   "https://meet.jit.si/MaraSprachDeutschLive",
@@ -35,13 +34,20 @@ const isValidGoogleMeetUrl = (value?: string) => {
   const trimmed = value.trim();
   if (!trimmed.startsWith("https://meet.google.com/")) return false;
   const path = trimmed.replace("https://meet.google.com/", "");
-  if (path === "new") return true;
   return /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/i.test(path);
 };
 
-const getGoogleMeetUrl = (value?: string) => {
-  if (typeof value === "string" && isValidGoogleMeetUrl(value)) {
-    return value.trim();
+const isValidJitsiUrl = (value?: string) => {
+  if (!value) return false;
+  const trimmed = value.trim();
+  return /^https:\/\/meet\.jit\.si\//i.test(trimmed);
+};
+
+const normalizeMeetingUrl = (value?: string) => {
+  if (typeof value !== "string") return JITSI_LIVE_URLS[0];
+  const trimmed = value.trim();
+  if (isValidGoogleMeetUrl(trimmed) || isValidJitsiUrl(trimmed)) {
+    return trimmed;
   }
   return JITSI_LIVE_URLS[0];
 };
@@ -105,7 +111,7 @@ const normalizeLiveSession = (session: any): LiveSession => ({
   title: session.title ?? "Session LIVE",
   date: formatSessionDate(session.start_at ?? session.startAt, session.date ?? "À programmer"),
   teacher: session.teacher ?? "Sophie Martin",
-  roomUrl: getGoogleMeetUrl(
+  roomUrl: normalizeMeetingUrl(
     session.meeting_url ??
       session.meetingUrl ??
       session.roomUrl ??
@@ -155,6 +161,7 @@ export function AppShell() {
     [support, setSupport] = useState(false),
     [toast, setToast] = useState(""),
     [photoOpen, setPhotoOpen] = useState(false),
+    [logoOpen, setLogoOpen] = useState(false),
     [liveJoined, setLiveJoined] = useState(false),
     [micOn, setMicOn] = useState(true),
     [cameraOn, setCameraOn] = useState(true),
@@ -336,7 +343,11 @@ export function AppShell() {
             width={420}
             height={120}
             priority
-            style={{ width: "auto", height: "85px", objectFit: "contain" }}
+            style={{ width: "auto", height: "85px", objectFit: "contain", cursor: "pointer" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLogoOpen(true);
+            }}
           />
         </div>
         <nav className="nav">
@@ -1138,6 +1149,36 @@ export function AppShell() {
                 objectFit: "cover",
                 objectPosition: "center 10%",
                 background: "#e7efff",
+              }}
+            />
+          </div>
+        </div>
+      )}
+      {logoOpen && (
+        <div className="photoModal" onClick={() => setLogoOpen(false)}>
+          <button
+            className="closePhotoBtn"
+            type="button"
+            aria-label="Fermer le logo"
+            onClick={() => setLogoOpen(false)}
+          >
+            ×
+          </button>
+          <div className="photoModalCard" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src="/logo/logo1.png"
+              alt="Logo Mara-Sprach-Team agrandi"
+              width={900}
+              height={900}
+              priority
+              style={{
+                width: "100%",
+                maxWidth: "760px",
+                height: "auto",
+                borderRadius: "24px",
+                objectFit: "contain",
+                background: "#ffffff",
+                padding: "28px",
               }}
             />
           </div>
