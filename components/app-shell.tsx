@@ -534,17 +534,17 @@ export function AppShell() {
             >
             <div className="card">
                 <div
-                style={{
-                    width: "50px",
-                    height: "50px",
-                    borderRadius: "14px",
-                    background: "#eef2ff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "24px",
-                    marginBottom: "20px",
-                }}
+                // style={{
+                //     width: "50px",
+                //     height: "50px",
+                //     borderRadius: "14px",
+                //     background: "#eef2ff",
+                //     display: "flex",
+                //     alignItems: "center",
+                //     justifyContent: "center",
+                //     fontSize: "24px",
+                //     marginBottom: "20px",
+                // }}
                 >
                 
                 </div>
@@ -559,17 +559,17 @@ export function AppShell() {
 
             <div className="card">
                 <div
-                style={{
-                    width: "50px",
-                    height: "50px",
-                    borderRadius: "14px",
-                    background: "#eef2ff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "24px",
-                    marginBottom: "20px",
-                }}
+                // style={{
+                //     width: "50px",
+                //     height: "50px",
+                //     borderRadius: "14px",
+                //     background: "#eef2ff",
+                //     display: "flex",
+                //     alignItems: "center",
+                //     justifyContent: "center",
+                //     fontSize: "24px",
+                //     marginBottom: "20px",
+                // }}
                 >
                 
                 </div>
@@ -584,17 +584,17 @@ export function AppShell() {
 
             <div className="card">
                 <div
-                style={{
-                    width: "50px",
-                    height: "50px",
-                    borderRadius: "14px",
-                    background: "#eef2ff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "24px",
-                    marginBottom: "20px",
-                }}
+                // style={{
+                //     width: "50px",
+                //     height: "50px",
+                //     borderRadius: "14px",
+                //     background: "#eef2ff",
+                //     display: "flex",
+                //     alignItems: "center",
+                //     justifyContent: "center",
+                //     fontSize: "24px",
+                //     marginBottom: "20px",
+                // }}
                 >
                 
                 </div>
