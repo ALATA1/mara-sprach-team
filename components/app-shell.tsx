@@ -44,6 +44,7 @@ const lives = [
   { id: 1, title: "Conversation française A1", date: "Jeudi 18:30", teacher: "Sophie Martin" },
   { id: 2, title: "Deutsch sprechen A1", date: "Samedi 10:00", teacher: "Jonas Weber" },
 ];
+const liveParticipants = ["Sophie Martin", "Amine", "Yasmina", "Lucas", "Leila", "Paul", "Noémie"];
 export function AppShell() {
   const [page, setPage] = useState("home"),
     [user, setUser] = useState<{ firstName: string; email?: string } | null>(null),
@@ -53,7 +54,8 @@ export function AppShell() {
     [registered, setRegistered] = useState<number[]>([]),
     [support, setSupport] = useState(false),
     [toast, setToast] = useState(""),
-    [photoOpen, setPhotoOpen] = useState(false);
+    [photoOpen, setPhotoOpen] = useState(false),
+    [liveJoined, setLiveJoined] = useState(false);
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("ensemble-v1") || "null");
@@ -639,28 +641,58 @@ export function AppShell() {
             ← Catalogue
           </button>
           <h1>{selected.title}</h1>
-          <div className="video liveSession" onClick={() => notify("Session en direct lancée")}>
-            <span className="liveBadge">LIVE</span>
-            <div className="teacherWindow">
-              <div className="teacherName">Sophie Martin</div>
-              <div className="teacherLabel">Professeure • Niveau A1</div>
+          <div className="livePanel">
+            <div className="liveHeader">
+              <div>
+                <span className="liveBadge">EN DIRECT</span>
+                <h2>Leçon 1 : Se présenter</h2>
+              </div>
+              <div className="liveMeta">
+                <span className="liveDot" />
+                {liveJoined ? `${liveParticipants.length + 1} participants` : `${liveParticipants.length} participants`}
+              </div>
             </div>
-            <div className="studentGrid">
-              {[
-                "Amine",
-                "Yasmina",
-                "Lucas",
-                "Leila",
-                "Paul",
-                "Noémie",
-              ].map((name) => (
-                <div className="studentChip" key={name}>
-                  {name}
-                </div>
-              ))}
+
+            <div className="video liveSession" onClick={() => notify("Session en direct lancée")}>
+              <div className="teacherWindow">
+                <div className="teacherName">Sophie Martin</div>
+                <div className="teacherLabel">Professeure • Niveau A1</div>
+              </div>
+              <div className="studentGrid">
+                {liveParticipants.map((name) => (
+                  <div className="studentChip" key={name}>
+                    {name}
+                  </div>
+                ))}
+                {liveJoined && <div className="studentChip studentChipSelf">{user?.firstName || "Vous"}</div>}
+              </div>
+              <div className="play" onClick={() => notify("Session en direct lancée")}>
+                ▶
+              </div>
             </div>
-            <div className="play" onClick={() => notify("Session en direct lancée")}>
-              ▶
+
+            <div className="liveActions">
+              {!liveJoined ? (
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    setLiveJoined(true);
+                    notify("Vous avez rejoint le live");
+                  }}
+                >
+                  Rejoindre le live
+                </button>
+              ) : (
+                <button
+                  className="btn secondary"
+                  onClick={() => {
+                    setLiveJoined(false);
+                    notify("Vous avez quitté le live");
+                  }}
+                >
+                  Quitter le live
+                </button>
+              )}
             </div>
           </div>
           <div className="card">
@@ -675,7 +707,23 @@ export function AppShell() {
       {page === "live" && (
         <main className="shell">
           <h1>Calendrier des LIVE</h1>
-          <div className="card">{liveRows}</div>
+          <div className="card liveScheduleCard">
+            {liveRows}
+            <div className="liveJoinRow">
+              <strong>Session active</strong>
+              <button
+                className="btn primary"
+                onClick={() => {
+                  setSelected(courses[0]);
+                  setLiveJoined(true);
+                  go("course");
+                  notify("Vous êtes maintenant dans le live");
+                }}
+              >
+                Rejoindre maintenant
+              </button>
+            </div>
+          </div>
         </main>
       )}
       {page === "support" && (
