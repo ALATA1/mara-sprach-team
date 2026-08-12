@@ -914,6 +914,7 @@ export function AppShell() {
                       aria-label="Quitter"
                       onClick={() => {
                         setLiveJoined(false);
+                        setPage("home");
                         notify("Vous avez quitté le live");
                       }}
                     >
@@ -1022,6 +1023,7 @@ export function AppShell() {
                   className="btn secondary"
                   onClick={() => {
                     setLiveJoined(false);
+                    setPage("home");
                     notify("Vous avez quitté le live");
                   }}
                 >
@@ -1046,7 +1048,13 @@ export function AppShell() {
           <div className="card">
             <h2>Leçon 1 : Se présenter</h2>
             <p className="muted">Apprenez les expressions essentielles et participez à un échange live avec les autres étudiants.</p>
-            <button className="btn primary" onClick={() => notify("Progression enregistrée")}>
+            <button
+              className="btn primary"
+              onClick={() => {
+                notify("Progression enregistrée");
+                setPage("home");
+              }}
+            >
               Marquer comme terminée
             </button>
           </div>
