@@ -281,20 +281,35 @@ export function AppShell() {
                 progresser à votre rythme
               </h2>
 
-              <div className="mini">
+              <button
+                type="button"
+                className="mini miniButton"
+                onClick={() => {
+                  setLanguage("Français");
+                  go("courses");
+                }}
+              >
                 <strong>🎬 Cours en vidéo</strong>
                 Disponibles quand vous le souhaitez
-              </div>
+              </button>
 
-                <div className="mini">
+              <button
+                type="button"
+                className="mini miniButton"
+                onClick={() => go("live")}
+              >
                 <strong>🎥 Sessions LIVE</strong>
-                Échangez avec des professeurs
-                </div>
+                Échangez avec des professeurs en direct
+              </button>
 
-                <div className="mini">
+              <button
+                type="button"
+                className="mini miniButton"
+                onClick={() => go("support")}
+              >
                 <strong>🤝 Accompagnement</strong>
                 Un volontaire vous aide dans vos démarches
-                </div>
+              </button>
             </div>
             </section>
 
@@ -624,14 +639,33 @@ export function AppShell() {
             ← Catalogue
           </button>
           <h1>{selected.title}</h1>
-          <div className="video">
-            <div className="play" onClick={() => notify("Lecture vidéo de démonstration")}>
+          <div className="video liveSession" onClick={() => notify("Session en direct lancée")}>
+            <span className="liveBadge">LIVE</span>
+            <div className="teacherWindow">
+              <div className="teacherName">Sophie Martin</div>
+              <div className="teacherLabel">Professeure • Niveau A1</div>
+            </div>
+            <div className="studentGrid">
+              {[
+                "Amine",
+                "Yasmina",
+                "Lucas",
+                "Leila",
+                "Paul",
+                "Noémie",
+              ].map((name) => (
+                <div className="studentChip" key={name}>
+                  {name}
+                </div>
+              ))}
+            </div>
+            <div className="play" onClick={() => notify("Session en direct lancée")}>
               ▶
             </div>
           </div>
           <div className="card">
             <h2>Leçon 1 : Se présenter</h2>
-            <p className="muted">Apprenez les expressions essentielles.</p>
+            <p className="muted">Apprenez les expressions essentielles et participez à un échange live avec les autres étudiants.</p>
             <button className="btn primary" onClick={() => notify("Progression enregistrée")}>
               Marquer comme terminée
             </button>

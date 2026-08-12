@@ -151,6 +151,16 @@ select {
   border-radius: 18px;
   color: #fff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  text-align: left;
+  width: 100%;
+}
+.miniButton {
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.miniButton:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
 }
 .mini strong {
   display: block;
@@ -281,6 +291,60 @@ select {
   display: grid;
   place-items: center;
   color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.liveSession {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+}
+.liveBadge {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.teacherWindow {
+  width: min(100%, 420px);
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 18px 20px;
+  text-align: center;
+}
+.teacherName {
+  font-size: 24px;
+  font-weight: 800;
+}
+.teacherLabel {
+  opacity: 0.8;
+  font-size: 14px;
+  margin-top: 6px;
+}
+.studentGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: min(100%, 460px);
+}
+.studentChip {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
 }
 .play {
   width: 76px;
@@ -292,6 +356,7 @@ select {
   place-items: center;
   font-size: 28px;
   cursor: pointer;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.16);
 }
 .toast {
   position: fixed;
