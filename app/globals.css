@@ -488,6 +488,9 @@ select {
 }
 .chatMessages {
   flex: 1;
+  min-height: 220px;
+  max-height: 260px;
+  overflow-y: auto;
   padding: 14px 12px;
   display: flex;
   flex-direction: column;
@@ -519,22 +522,43 @@ select {
 .chatComposer,
 .questionComposer {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   padding: 12px;
   border-top: 1px solid #edf0f4;
+  background: #fff;
 }
 .chatComposer input,
 .questionComposer input {
   flex: 1;
+  min-width: 0;
   border: 1px solid #dfe7f5;
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.chatComposer input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6h16v12H7l-3 3V6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  padding-left: 42px;
+}
+.chatComposer .btn,
+.questionComposer .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-width: 96px;
+  padding: 12px 18px;
+  font-size: 14px;
+  border-radius: 12px;
 }
 .questionsList {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 12px;
+  min-height: 160px;
 }
 .questionItem {
   background: #f8fafc;
@@ -542,6 +566,17 @@ select {
   border-radius: 12px;
   padding: 10px 12px;
   color: #0f172a;
+}
+.chatPanel::-webkit-scrollbar,
+.chatMessages::-webkit-scrollbar,
+.questionsList::-webkit-scrollbar {
+  width: 8px;
+}
+.chatPanel::-webkit-scrollbar-thumb,
+.chatMessages::-webkit-scrollbar-thumb,
+.questionsList::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
 }
 .liveSession {
   display: flex;

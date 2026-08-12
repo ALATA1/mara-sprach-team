@@ -158,6 +158,9 @@ export function AppShell() {
           />
         </div>
         <nav className="nav">
+          <button className="btn ghost hideMobile" onClick={() => go("home")}>
+            Accueil
+          </button>
           {paid ? (
             <>
               <button className="btn ghost hideMobile" onClick={() => go("courses")}>
