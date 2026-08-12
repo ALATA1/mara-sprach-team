@@ -790,7 +790,16 @@ select {
   }
 
   .nav .hideMobile {
-    display: none;
+    display: inline-flex;
+  }
+
+  .nav {
+    gap: 6px;
+  }
+
+  .nav .btn {
+    padding: 10px 12px;
+    font-size: 12px;
   }
 
   .actions {
