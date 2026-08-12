@@ -24,13 +24,35 @@ type LiveSession = {
   startAt?: string;
 };
 
+const GOOGLE_MEET_NEW_URL = "https://meet.google.com/new";
+const JITSI_LIVE_URLS = [
+  "https://meet.jit.si/MaraSprachA1Live",
+  "https://meet.jit.si/MaraSprachDeutschLive",
+];
+
+const isValidGoogleMeetUrl = (value?: string) => {
+  if (!value) return false;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("https://meet.google.com/")) return false;
+  const path = trimmed.replace("https://meet.google.com/", "");
+  if (path === "new") return true;
+  return /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/i.test(path);
+};
+
+const getGoogleMeetUrl = (value?: string) => {
+  if (typeof value === "string" && isValidGoogleMeetUrl(value)) {
+    return value.trim();
+  }
+  return JITSI_LIVE_URLS[0];
+};
+
 const defaultLiveSessions: LiveSession[] = [
   {
     id: 1,
     title: "Conversation française A1",
     date: "Jeudi 18:30",
     teacher: "Sophie Martin",
-    roomUrl: "https://meet.google.com/abc-defg-hij",
+    roomUrl: JITSI_LIVE_URLS[0],
     course: "Français",
     startAt: "2026-08-14T18:30:00+00:00",
   },
@@ -39,7 +61,7 @@ const defaultLiveSessions: LiveSession[] = [
     title: "Deutsch sprechen A1",
     date: "Samedi 10:00",
     teacher: "Jonas Weber",
-    roomUrl: "https://meet.google.com/xyz-abcd-efg",
+    roomUrl: JITSI_LIVE_URLS[1],
     course: "Allemand",
     startAt: "2026-08-16T10:00:00+00:00",
   },
@@ -48,7 +70,7 @@ const defaultLiveSessions: LiveSession[] = [
     title: "Atelier oral français",
     date: "Lundi 18:00",
     teacher: "Sophie Martin",
-    roomUrl: "https://meet.google.com/pqr-stuv-wxy",
+    roomUrl: JITSI_LIVE_URLS[0],
     course: "Français",
     startAt: "2026-08-18T18:00:00+00:00",
   },
@@ -57,7 +79,7 @@ const defaultLiveSessions: LiveSession[] = [
     title: "Conversation allemande niveau B1",
     date: "Mercredi 19:00",
     teacher: "Jonas Weber",
-    roomUrl: "https://meet.google.com/klm-nopq-rst",
+    roomUrl: JITSI_LIVE_URLS[1],
     course: "Allemand",
     startAt: "2026-08-20T19:00:00+00:00",
   },
@@ -83,11 +105,12 @@ const normalizeLiveSession = (session: any): LiveSession => ({
   title: session.title ?? "Session LIVE",
   date: formatSessionDate(session.start_at ?? session.startAt, session.date ?? "À programmer"),
   teacher: session.teacher ?? "Sophie Martin",
-  roomUrl:
+  roomUrl: getGoogleMeetUrl(
     session.meeting_url ??
-    session.meetingUrl ??
-    session.roomUrl ??
-    "https://meet.google.com/abc-defg-hij",
+      session.meetingUrl ??
+      session.roomUrl ??
+      JITSI_LIVE_URLS[0],
+  ),
   course: session.course ?? session.course_name ?? session.language ?? "Français",
   startAt: session.start_at ?? session.startAt,
 });
