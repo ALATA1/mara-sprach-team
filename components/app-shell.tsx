@@ -55,7 +55,12 @@ export function AppShell() {
     [support, setSupport] = useState(false),
     [toast, setToast] = useState(""),
     [photoOpen, setPhotoOpen] = useState(false),
-    [liveJoined, setLiveJoined] = useState(false);
+    [liveJoined, setLiveJoined] = useState(false),
+    [micOn, setMicOn] = useState(true),
+    [cameraOn, setCameraOn] = useState(true),
+    [chatOpen, setChatOpen] = useState(true),
+    [chatInput, setChatInput] = useState(""),
+    [questionInput, setQuestionInput] = useState("");
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("ensemble-v1") || "null");
@@ -128,6 +133,17 @@ export function AppShell() {
       </div>
     );
   });
+  const liveMessages = [
+    { user: "Sophie", text: "Bonjour à tous ! On va parler aujourd’hui de la présentation." },
+    { user: "Amine", text: "Très bien, je peux répondre en français." },
+    { user: "Leila", text: "Je veux aussi améliorer ma prononciation." },
+    { user: "Vous", text: "Je suis prêt pour la séance." },
+  ];
+  const liveQuestions = [
+    { user: "Amine", text: "Comment distinguer le féminin et le masculin ?" },
+    { user: "Leila", text: "Peut-on parler plus lentement pendant la séance ?" },
+    { user: "Lucas", text: "Je voudrais des exemples concrets de phrases." },
+  ];
   return (
     <div className="app">
       <header className="topbar">
@@ -653,22 +669,133 @@ export function AppShell() {
               </div>
             </div>
 
-            <div className="video liveSession" onClick={() => notify("Session en direct lancée")}>
-              <div className="teacherWindow">
-                <div className="teacherName">Sophie Martin</div>
-                <div className="teacherLabel">Professeure • Niveau A1</div>
-              </div>
-              <div className="studentGrid">
-                {liveParticipants.map((name) => (
-                  <div className="studentChip" key={name}>
-                    {name}
+            <div className="videoConference tripleLayout">
+              <div className="conferenceMainBlock">
+                <div className="mainVideoCard">
+                  <div className="speakerTag">Professeure • Sophie Martin</div>
+                  <div className="talkingName">Sophie Martin</div>
+                  <div className="conferenceControls">
+                    <button
+                      type="button"
+                      className={`controlButton ${micOn ? "active" : "muted"}`}
+                      aria-label={micOn ? "Mute" : "Unmute"}
+                      onClick={() => {
+                        setMicOn((v) => !v);
+                        notify(micOn ? "Micro coupé" : "Micro réactivé");
+                      }}
+                    >
+                      {micOn ? "🎤" : "🔇"}
+                    </button>
+                    <button
+                      type="button"
+                      className={`controlButton ${cameraOn ? "active" : "muted"}`}
+                      aria-label={cameraOn ? "Désactiver caméra" : "Réactiver caméra"}
+                      onClick={() => {
+                        setCameraOn((v) => !v);
+                        notify(cameraOn ? "Caméra désactivée" : "Caméra activée");
+                      }}
+                    >
+                      {cameraOn ? "📷" : "🚫"}
+                    </button>
+                    <button
+                      type="button"
+                      className="controlButton exit"
+                      aria-label="Quitter"
+                      onClick={() => {
+                        setLiveJoined(false);
+                        notify("Vous avez quitté le live");
+                      }}
+                    >
+                      ✕
+                    </button>
                   </div>
-                ))}
-                {liveJoined && <div className="studentChip studentChipSelf">{user?.firstName || "Vous"}</div>}
+                </div>
+
+                <div className="miniVideoGrid">
+                  {liveParticipants.map((name) => (
+                    <div className="miniVideo" key={name}>
+                      <span>{name}</span>
+                    </div>
+                  ))}
+                  {liveJoined && (
+                    <div className="miniVideo currentUser">
+                      <span>{user?.firstName || "Vous"}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="play" onClick={() => notify("Session en direct lancée")}>
-                ▶
-              </div>
+
+              <aside className="chatPanel">
+                <div className="chatHeader">
+                  <strong>Discussion</strong>
+                  <button className="chatToggle" type="button" onClick={() => setChatOpen((v) => !v)}>
+                    {chatOpen ? "−" : "+"}
+                  </button>
+                </div>
+                {chatOpen && (
+                  <>
+                    <div className="chatMessages">
+                      {liveMessages.map((m, index) => (
+                        <div className={`chatMessage ${m.user === "Vous" ? "mine" : ""}`} key={`${m.user}-${index}`}>
+                          <span className="chatUser">{m.user}</span>
+                          <p>{m.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <form
+                      className="chatComposer"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!chatInput.trim()) return;
+                        liveMessages.push({ user: "Vous", text: chatInput.trim() });
+                        setChatInput("");
+                        notify("Message envoyé");
+                      }}
+                    >
+                      <input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Écrire au groupe..."
+                      />
+                      <button type="submit" className="btn primary">Envoyer</button>
+                    </form>
+                  </>
+                )}
+              </aside>
+
+              <aside className="questionsPanel">
+                <div className="chatHeader">
+                  <strong>Questions</strong>
+                  <span className="panelPill">3</span>
+                </div>
+                <div className="questionsList">
+                  {liveQuestions.map((q, index) => (
+                    <div className="questionItem" key={`${q.user}-${index}`}>
+                      <div className="questionUser">{q.user}</div>
+                      <div>{q.text}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="questionComposer">
+                  <input
+                    value={questionInput}
+                    onChange={(e) => setQuestionInput(e.target.value)}
+                    placeholder="Posez votre question..."
+                  />
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={() => {
+                      if (!questionInput.trim()) return;
+                      liveQuestions.unshift({ user: "Vous", text: questionInput.trim() });
+                      setQuestionInput("");
+                      notify("Question envoyée");
+                    }}
+                  >
+                    Envoyer
+                  </button>
+                </div>
+              </aside>
             </div>
 
             <div className="liveActions">
@@ -693,6 +820,9 @@ export function AppShell() {
                   Quitter le live
                 </button>
               )}
+              <button type="button" className="btn ghost" onClick={() => setChatOpen((v) => !v)}>
+                {chatOpen ? "Masquer le chat" : "Afficher le chat"}
+              </button>
             </div>
           </div>
           <div className="card">
