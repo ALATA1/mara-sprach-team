@@ -292,6 +292,33 @@ select {
 .liveHeader h2 {
   margin: 10px 0 0;
 }
+.liveInfoBar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.liveInfoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.liveInfoLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.linkItem strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .liveMeta {
   display: inline-flex;
   align-items: center;
@@ -314,6 +341,14 @@ select {
   margin-top: 18px;
   display: flex;
   justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.liveActionsRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 .liveScheduleCard {
   display: flex;

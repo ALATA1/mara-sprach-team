@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
 type Course = {
   id: number;
   language: string;
@@ -11,6 +13,85 @@ type Course = {
   lessons: number;
   color: string;
 };
+
+type LiveSession = {
+  id: number | string;
+  title: string;
+  date: string;
+  teacher: string;
+  roomUrl: string;
+  course?: string;
+  startAt?: string;
+};
+
+const defaultLiveSessions: LiveSession[] = [
+  {
+    id: 1,
+    title: "Conversation française A1",
+    date: "Jeudi 18:30",
+    teacher: "Sophie Martin",
+    roomUrl: "https://meet.google.com/abc-defg-hij",
+    course: "Français",
+    startAt: "2026-08-14T18:30:00+00:00",
+  },
+  {
+    id: 2,
+    title: "Deutsch sprechen A1",
+    date: "Samedi 10:00",
+    teacher: "Jonas Weber",
+    roomUrl: "https://meet.google.com/xyz-abcd-efg",
+    course: "Allemand",
+    startAt: "2026-08-16T10:00:00+00:00",
+  },
+  {
+    id: 3,
+    title: "Atelier oral français",
+    date: "Lundi 18:00",
+    teacher: "Sophie Martin",
+    roomUrl: "https://meet.google.com/pqr-stuv-wxy",
+    course: "Français",
+    startAt: "2026-08-18T18:00:00+00:00",
+  },
+  {
+    id: 4,
+    title: "Conversation allemande niveau B1",
+    date: "Mercredi 19:00",
+    teacher: "Jonas Weber",
+    roomUrl: "https://meet.google.com/klm-nopq-rst",
+    course: "Allemand",
+    startAt: "2026-08-20T19:00:00+00:00",
+  },
+];
+
+const formatSessionDate = (value?: string, fallback = "À programmer") => {
+  if (!value) return fallback;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return fallback;
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+};
+
+const normalizeLiveSession = (session: any): LiveSession => ({
+  id: session.id ?? session.live_session_id ?? Math.random(),
+  title: session.title ?? "Session LIVE",
+  date: formatSessionDate(session.start_at ?? session.startAt, session.date ?? "À programmer"),
+  teacher: session.teacher ?? "Sophie Martin",
+  roomUrl:
+    session.meeting_url ??
+    session.meetingUrl ??
+    session.roomUrl ??
+    "https://meet.google.com/abc-defg-hij",
+  course: session.course ?? session.course_name ?? session.language ?? "Français",
+  startAt: session.start_at ?? session.startAt,
+});
+
 const courses: Course[] = [
   {
     id: 1,
@@ -40,10 +121,6 @@ const courses: Course[] = [
     color: "#ea580c",
   },
 ];
-const lives = [
-  { id: 1, title: "Conversation française A1", date: "Jeudi 18:30", teacher: "Sophie Martin" },
-  { id: 2, title: "Deutsch sprechen A1", date: "Samedi 10:00", teacher: "Jonas Weber" },
-];
 const liveParticipants = ["Sophie Martin", "Amine", "Yasmina", "Lucas", "Leila", "Paul", "Noémie"];
 export function AppShell() {
   const [page, setPage] = useState("home"),
@@ -60,7 +137,9 @@ export function AppShell() {
     [cameraOn, setCameraOn] = useState(true),
     [chatOpen, setChatOpen] = useState(true),
     [chatInput, setChatInput] = useState(""),
-    [questionInput, setQuestionInput] = useState("");
+    [questionInput, setQuestionInput] = useState(""),
+    [liveSessions, setLiveSessions] = useState<LiveSession[]>(defaultLiveSessions),
+    [activeLive, setActiveLive] = useState<LiveSession>(defaultLiveSessions[0]);
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("ensemble-v1") || "null");
@@ -72,6 +151,45 @@ export function AppShell() {
       }
     } catch {}
   }, []);
+
+  useEffect(() => {
+    const client = createClient();
+    if (!client) return;
+
+    let active = true;
+
+    const loadSessions = async () => {
+      try {
+        const { data, error } = await client.from("live_sessions").select("*").order("start_at", { ascending: true });
+        if (!active || error || !Array.isArray(data)) {
+          setLiveSessions(defaultLiveSessions);
+          return;
+        }
+
+        const nextSessions = data.map(normalizeLiveSession);
+        setLiveSessions(nextSessions.length ? nextSessions : defaultLiveSessions);
+      } catch {
+        if (active) {
+          setLiveSessions(defaultLiveSessions);
+        }
+      }
+    };
+
+    loadSessions();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!liveSessions.length) return;
+    setActiveLive((current) => {
+      if (current && liveSessions.some((item) => item.id === current.id)) return current;
+      return liveSessions[0];
+    });
+  }, [liveSessions]);
+
   useEffect(() => {
     localStorage.setItem("ensemble-v1", JSON.stringify({ user, paid, registered, support }));
   }, [user, paid, registered, support]);
@@ -111,28 +229,69 @@ export function AppShell() {
       </div>
     </article>
   );
-  const liveRows = lives.map((l) => {
-    const on = registered.includes(l.id);
+  const liveRows = liveSessions.map((l) => {
+    const id = Number(l.id) || String(l.id);
+    const on = registered.includes(Number(id) || Number(l.id));
     return (
-      <div className="live" key={l.id}>
+      <div className="live" key={String(l.id)}>
         <div>
           <strong>{l.title}</strong>
           <div className="muted">
             {l.date} • {l.teacher}
           </div>
         </div>
-        <button
-          className={`btn ${on ? "secondary" : "primary"}`}
-          onClick={() => {
-            setRegistered((v) => (on ? v.filter((x) => x !== l.id) : [...v, l.id]));
-            notify(on ? "Inscription annulée" : "Inscription confirmée");
-          }}
-        >
-          {on ? "Inscrit ✓" : "S'inscrire"}
-        </button>
+        <div className="liveActionsRow">
+          <button
+            className={`btn ${on ? "secondary" : "primary"}`}
+            onClick={() => {
+              const numericId = Number(l.id);
+              setRegistered((v) =>
+                on ? v.filter((x) => x !== numericId && String(x) !== String(l.id)) : [...v, numericId || Number(String(l.id).slice(-1))],
+              );
+              notify(on ? "Inscription annulée" : "Inscription confirmée");
+            }}
+          >
+            {on ? "Inscrit ✓" : "S'inscrire"}
+          </button>
+          <button
+            className="btn ghost"
+            onClick={() => {
+              setActiveLive(l);
+              setSelected(courses[0]);
+              setLiveJoined(true);
+              go("course");
+              if (typeof window !== "undefined") {
+                window.open(l.roomUrl, "_blank", "noopener,noreferrer");
+              }
+              notify("Salle Google Meet ouverte");
+            }}
+          >
+            Rejoindre
+          </button>
+        </div>
       </div>
     );
   });
+  const joinLiveSession = (item = activeLive) => {
+    if (!item) return;
+    setActiveLive(item);
+    setLiveJoined(true);
+    if (typeof window !== "undefined") {
+      window.open(item.roomUrl, "_blank", "noopener,noreferrer");
+    }
+    notify("Salle live ouverte");
+  };
+  const copyLiveLink = async () => {
+    if (!activeLive?.roomUrl) return;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(activeLive.roomUrl);
+      }
+      notify("Lien de salle copié");
+    } catch {
+      notify("Lien prêt à être partagé");
+    }
+  };
   const liveMessages = [
     { user: "Sophie", text: "Bonjour à tous ! On va parler aujourd’hui de la présentation." },
     { user: "Amine", text: "Très bien, je peux répondre en français." },
@@ -664,7 +823,7 @@ export function AppShell() {
             <div className="liveHeader">
               <div>
                 <span className="liveBadge">EN DIRECT</span>
-                <h2>Leçon 1 : Se présenter</h2>
+                <h2>{activeLive?.title || "Leçon 1 : Se présenter"}</h2>
               </div>
               <div className="liveMeta">
                 <span className="liveDot" />
@@ -672,11 +831,26 @@ export function AppShell() {
               </div>
             </div>
 
+            <div className="liveInfoBar">
+              <div className="liveInfoItem">
+                <span className="liveInfoLabel">Professeur</span>
+                <strong>{activeLive?.teacher || "Sophie Martin"}</strong>
+              </div>
+              <div className="liveInfoItem">
+                <span className="liveInfoLabel">Horaire</span>
+                <strong>{activeLive?.date || "Jeudi 18:30"}</strong>
+              </div>
+              <div className="liveInfoItem linkItem">
+                <span className="liveInfoLabel">Salle</span>
+                <strong>{activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}</strong>
+              </div>
+            </div>
+
             <div className="videoConference tripleLayout">
               <div className="conferenceMainBlock">
                 <div className="mainVideoCard">
-                  <div className="speakerTag">Professeure • Sophie Martin</div>
-                  <div className="talkingName">Sophie Martin</div>
+                  <div className="speakerTag">Professeure • {activeLive?.teacher || "Sophie Martin"}</div>
+                  <div className="talkingName">{activeLive?.teacher || "Sophie Martin"}</div>
                   <div className="conferenceControls">
                     <button
                       type="button"
@@ -805,10 +979,7 @@ export function AppShell() {
               {!liveJoined ? (
                 <button
                   className="btn primary"
-                  onClick={() => {
-                    setLiveJoined(true);
-                    notify("Vous avez rejoint le live");
-                  }}
+                  onClick={() => joinLiveSession()}
                 >
                   Rejoindre le live
                 </button>
@@ -823,8 +994,18 @@ export function AppShell() {
                   Quitter le live
                 </button>
               )}
-              <button type="button" className="btn ghost" onClick={() => setChatOpen((v) => !v)}>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  setChatOpen((v) => !v);
+                  notify(chatOpen ? "Chat masqué" : "Chat affiché");
+                }}
+              >
                 {chatOpen ? "Masquer le chat" : "Afficher le chat"}
+              </button>
+              <button type="button" className="btn ghost" onClick={copyLiveLink}>
+                Copier le lien
               </button>
             </div>
           </div>
@@ -843,12 +1024,17 @@ export function AppShell() {
           <div className="card liveScheduleCard">
             {liveRows}
             <div className="liveJoinRow">
-              <strong>Session active</strong>
+              <strong>Session active: {activeLive?.title || "À venir"}</strong>
               <button
                 className="btn primary"
                 onClick={() => {
+                  const live = liveSessions[0] ?? activeLive;
+                  setActiveLive(live);
                   setSelected(courses[0]);
                   setLiveJoined(true);
+                  if (typeof window !== "undefined") {
+                    window.open(live.roomUrl, "_blank", "noopener,noreferrer");
+                  }
                   go("course");
                   notify("Vous êtes maintenant dans le live");
                 }}
