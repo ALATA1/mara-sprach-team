@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Course = {
@@ -170,6 +170,7 @@ export function AppShell() {
     [questionInput, setQuestionInput] = useState(""),
     [liveSessions, setLiveSessions] = useState<LiveSession[]>(defaultLiveSessions),
     [activeLive, setActiveLive] = useState<LiveSession>(defaultLiveSessions[0]);
+  const livePopupRef = useRef<Window | null>(null);
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("ensemble-v1") || "null");
@@ -288,12 +289,8 @@ export function AppShell() {
             onClick={() => {
               setActiveLive(l);
               setSelected(courses[0]);
-              setLiveJoined(true);
               go("course");
-              if (typeof window !== "undefined") {
-                window.open(l.roomUrl, "_blank", "noopener,noreferrer");
-              }
-              notify("Salle Google Meet ouverte");
+              openLiveRoom(l);
             }}
           >
             Rejoindre
@@ -302,14 +299,29 @@ export function AppShell() {
       </div>
     );
   });
-  const joinLiveSession = (item = activeLive) => {
-    if (!item) return;
+  const openLiveRoom = (item: LiveSession) => {
     setActiveLive(item);
     setLiveJoined(true);
     if (typeof window !== "undefined") {
-      window.open(item.roomUrl, "_blank", "noopener,noreferrer");
+      const popup = window.open(item.roomUrl, "_blank", "noopener,noreferrer");
+      livePopupRef.current = popup;
     }
     notify("Salle live ouverte");
+  };
+
+  const leaveLiveRoom = () => {
+    if (livePopupRef.current && !livePopupRef.current.closed) {
+      livePopupRef.current.close();
+      livePopupRef.current = null;
+    }
+    setLiveJoined(false);
+    setPage("home");
+    notify("Vous avez quitté le live");
+  };
+
+  const joinLiveSession = (item = activeLive) => {
+    if (!item) return;
+    openLiveRoom(item);
   };
   const copyLiveLink = async () => {
     if (!activeLive?.roomUrl) return;
@@ -876,7 +888,14 @@ export function AppShell() {
               </div>
               <div className="liveInfoItem linkItem">
                 <span className="liveInfoLabel">Salle</span>
-                <strong>{activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}</strong>
+                <a
+                  href={activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#2563eb", textDecoration: "underline", fontWeight: 700 }}
+                >
+                  {activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
+                </a>
               </div>
             </div>
 
@@ -912,11 +931,7 @@ export function AppShell() {
                       type="button"
                       className="controlButton exit"
                       aria-label="Quitter"
-                      onClick={() => {
-                        setLiveJoined(false);
-                        setPage("home");
-                        notify("Vous avez quitté le live");
-                      }}
+                      onClick={leaveLiveRoom}
                     >
                       ✕
                     </button>
@@ -1021,11 +1036,7 @@ export function AppShell() {
               ) : (
                 <button
                   className="btn secondary"
-                  onClick={() => {
-                    setLiveJoined(false);
-                    setPage("home");
-                    notify("Vous avez quitté le live");
-                  }}
+                  onClick={leaveLiveRoom}
                 >
                   Quitter le live
                 </button>
@@ -1073,11 +1084,8 @@ export function AppShell() {
                   const live = liveSessions[0] ?? activeLive;
                   setActiveLive(live);
                   setSelected(courses[0]);
-                  setLiveJoined(true);
-                  if (typeof window !== "undefined") {
-                    window.open(live.roomUrl, "_blank", "noopener,noreferrer");
-                  }
                   go("course");
+                  openLiveRoom(live);
                   notify("Vous êtes maintenant dans le live");
                 }}
               >
