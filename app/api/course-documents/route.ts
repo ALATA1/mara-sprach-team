@@ -62,8 +62,33 @@ const toPublicDocument = (client: NonNullable<ReturnType<typeof getStorageClient
 };
 
 export async function GET() {
+  const requiredVariables = [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "COURSE_DOCUMENTS_ADMIN_TOKEN",
+  ];
+  const missingVariables = requiredVariables.filter((name) => !process.env[name]?.trim());
+  if (missingVariables.length) {
+    return NextResponse.json({
+      configured: false,
+      stage: "environment",
+      missingVariables,
+      message: "Des variables d’environnement requises sont absentes du serveur.",
+      documents: [],
+    });
+  }
+
   const client = getStorageClient();
-  if (!client) return NextResponse.json({ configured: false, documents: [] });
+  if (!client) {
+    return NextResponse.json({
+      configured: false,
+      stage: "environment",
+      missingVariables: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+      message: "Le client serveur Supabase n’a pas pu être initialisé.",
+      documents: [],
+    });
+  }
 
   const { data, error } = await client
     .from("course_documents")
@@ -71,11 +96,36 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: "Impossible de charger les documents du cours." }, { status: 503 });
+    const migrationMissing = error.code === "42P01" || error.code === "PGRST205";
+    return NextResponse.json({
+      configured: false,
+      stage: migrationMissing ? "migration" : "database",
+      migrationApplied: !migrationMissing,
+      message: migrationMissing
+        ? "La table course_documents est absente. Exécutez la migration 002_course_documents.sql dans Supabase."
+        : "Supabase ne permet pas de lire la bibliothèque. Vérifiez le projet et les droits de la clé serveur.",
+      documents: [],
+    });
+  }
+
+  const { data: bucket, error: bucketError } = await client.storage.getBucket(BUCKET);
+  if (bucketError || !bucket) {
+    return NextResponse.json({
+      configured: false,
+      stage: "migration",
+      migrationApplied: true,
+      bucketReady: false,
+      message: "La table documentaire existe, mais le bucket course-documents est absent. Réexécutez la migration 002_course_documents.sql dans Supabase.",
+      documents: [],
+    });
   }
 
   return NextResponse.json({
     configured: true,
+    stage: "ready",
+    migrationApplied: true,
+    bucketReady: true,
+    message: "La bibliothèque de documents est configurée.",
     documents: (data as CourseDocumentRow[]).map((row) => toPublicDocument(client, row)),
   });
 }

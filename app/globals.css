@@ -664,6 +664,20 @@ select {
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+.documentSetupNotice > strong {
+  display: block;
+  margin-bottom: 6px;
+}
+.documentSetupNotice p {
+  margin: 6px 0 0;
+}
+.documentSetupNotice code {
+  display: inline-block;
+  margin: 2px 3px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(101, 85, 45, 0.08);
+}
 .documentUploadError {
   margin-bottom: 12px;
   border-color: #eccbc4;

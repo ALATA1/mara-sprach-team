@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { JitsiRoom } from "@/components/jitsi-room";
 import { GermanPronunciationButton, GermanVoiceStatus } from "@/components/german-pronunciation";
@@ -27,6 +28,10 @@ type Course = {
   quiz: { question: string; options: string[]; answer: string; explanation: string }[];
   curriculum?: GermanCurriculum;
 };
+
+type AccountRole = "beneficiary" | "teacher" | "volunteer" | "admin";
+type Account = { id: string; firstName: string; email: string; role: AccountRole };
+type TeacherCourse = { id: string; title: string; language: string; level: string; published: boolean };
 
 type LiveSession = {
   id: number | string;
@@ -257,8 +262,14 @@ const courses: Course[] = [
 ];
 export function AppShell() {
   const [page, setPage] = useState("home"),
-    [user, setUser] = useState<{ firstName: string; email?: string } | null>(null),
+    [user, setUser] = useState<Account | null>(null),
     [paid, setPaid] = useState(false),
+    [authLoading, setAuthLoading] = useState(true),
+    [authBusy, setAuthBusy] = useState(false),
+    [authError, setAuthError] = useState(""),
+    [authMessage, setAuthMessage] = useState(""),
+    [pendingConfirmationEmail, setPendingConfirmationEmail] = useState(""),
+    [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]),
     [language, setLanguage] = useState("Tous"),
     [selected, setSelected] = useState(courses[0]),
     [registered, setRegistered] = useState<number[]>([]),
@@ -270,6 +281,8 @@ export function AppShell() {
     [activeCourseTab, setActiveCourseTab] = useState<"learning" | "documents">("learning"),
     [courseDocuments, setCourseDocuments] = useState<UploadedCourseDocument[]>([]),
     [documentStorageAvailable, setDocumentStorageAvailable] = useState(false),
+    [documentSetupMessage, setDocumentSetupMessage] = useState("Vérification de la configuration Supabase…"),
+    [documentMissingVariables, setDocumentMissingVariables] = useState<string[]>([]),
     [documentAdminToken, setDocumentAdminToken] = useState(""),
     [documentTitle, setDocumentTitle] = useState(""),
     [documentFile, setDocumentFile] = useState<File | null>(null),
@@ -284,12 +297,58 @@ export function AppShell() {
     [completedGermanLessons, setCompletedGermanLessons] = useState<Record<number, number[]>>({}),
     [liveSessions, setLiveSessions] = useState<LiveSession[]>(defaultLiveSessions),
     [activeLive, setActiveLive] = useState<LiveSession>(defaultLiveSessions[0]);
+
+  const loadAccount = async (supabaseUser: SupabaseUser, redirectAfterLoad = true) => {
+    const client = createClient();
+    if (!client) return;
+
+    const [{ data: profile }, { data: membership }] = await Promise.all([
+      client.from("profiles").select("first_name, role").eq("id", supabaseUser.id).maybeSingle(),
+      client.from("memberships").select("status").eq("user_id", supabaseUser.id).maybeSingle(),
+    ]);
+    const validRoles: AccountRole[] = ["beneficiary", "teacher", "volunteer", "admin"];
+    const profileRole = profile?.role;
+    const role: AccountRole = validRoles.includes(profileRole) ? profileRole : "beneficiary";
+    const account: Account = {
+      id: supabaseUser.id,
+      firstName: profile?.first_name || String(supabaseUser.user_metadata?.first_name ?? ""),
+      email: supabaseUser.email ?? "",
+      role,
+    };
+
+    setUser(account);
+    setPaid(role === "teacher" || role === "admin" || membership?.status === "active");
+
+    if (role === "teacher") {
+      const { data } = await client
+        .from("courses")
+        .select("id, title, language, level, published")
+        .eq("teacher_id", supabaseUser.id)
+        .order("created_at", { ascending: false });
+      setTeacherCourses((data ?? []) as TeacherCourse[]);
+    } else {
+      setTeacherCourses([]);
+    }
+
+    if (redirectAfterLoad) {
+      if (role === "teacher" || role === "admin" || membership?.status === "active") go("dashboard");
+      else go("payment");
+    }
+  };
+
+  const signOut = async () => {
+    const client = createClient();
+    if (client) await client.auth.signOut();
+    setUser(null);
+    setPaid(false);
+    setTeacherCourses([]);
+    go("home");
+  };
+
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("ensemble-v1") || "null");
       if (s) {
-        setUser(s.user);
-        setPaid(!!s.paid);
         setRegistered(s.registered || []);
         setSupport(!!s.support);
         setCompletedGermanLessons(
@@ -301,6 +360,40 @@ export function AppShell() {
         );
       }
     } catch {}
+    const client = createClient();
+    if (!client) {
+      setAuthLoading(false);
+      return;
+    }
+
+    let active = true;
+    const restoreSession = async () => {
+      const { data: { user: supabaseUser } } = await client.auth.getUser();
+      if (active && supabaseUser) await loadAccount(supabaseUser);
+      if (active) setAuthLoading(false);
+    };
+    void restoreSession();
+    const { data: { subscription } } = client.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setPaid(false);
+        setTeacherCourses([]);
+      }
+    });
+
+    const parameters = new URLSearchParams(window.location.search);
+    if (parameters.get("auth") === "confirmation-error") {
+      setAuthError("Le lien de confirmation est invalide ou expiré. Demandez un nouvel e-mail de confirmation.");
+      go("login");
+    }
+    if (parameters.get("payment") === "confirmed") setToast("Paiement confirmé. Votre accès étudiant est activé.");
+    if (parameters.get("payment") === "error") setAuthError("Le paiement n’a pas pu être confirmé. Contactez l’équipe avant de réessayer.");
+    if (parameters.get("payment") === "cancelled") setAuthMessage("Paiement annulé. Votre accès n’a pas été activé.");
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -344,10 +437,16 @@ export function AppShell() {
       .then((result) => {
         if (!active) return;
         setDocumentStorageAvailable(Boolean(result.configured));
+        setDocumentSetupMessage(typeof result.message === "string" ? result.message : "La configuration des documents n’a pas pu être vérifiée.");
+        setDocumentMissingVariables(Array.isArray(result.missingVariables) ? result.missingVariables : []);
         setCourseDocuments(Array.isArray(result.documents) ? result.documents : []);
       })
       .catch(() => {
-        if (active) setDocumentStorageAvailable(false);
+        if (active) {
+          setDocumentStorageAvailable(false);
+          setDocumentSetupMessage("Impossible de contacter le serveur pour vérifier la bibliothèque documentaire.");
+          setDocumentMissingVariables([]);
+        }
       });
 
     return () => {
@@ -364,8 +463,8 @@ export function AppShell() {
   }, [liveSessions]);
 
   useEffect(() => {
-    localStorage.setItem("ensemble-v1", JSON.stringify({ user, paid, registered, support, completedGermanLessons }));
-  }, [user, paid, registered, support, completedGermanLessons]);
+    localStorage.setItem("ensemble-v1", JSON.stringify({ registered, support, completedGermanLessons }));
+  }, [registered, support, completedGermanLessons]);
   const go = (p: string) => {
       setPage(p);
       scrollTo(0, 0);
@@ -489,6 +588,105 @@ export function AppShell() {
       notify("Lien prêt à être partagé");
     }
   };
+  const confirmationRedirectUrl = () => `${window.location.origin}/auth/callback?next=/`;
+  const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAuthError("");
+    setAuthMessage("");
+    const client = createClient();
+    if (!client) {
+      setAuthError("Supabase Auth n’est pas configuré. Renseignez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      return;
+    }
+
+    const values = new FormData(event.currentTarget);
+    const firstName = String(values.get("firstName") ?? "").trim();
+    const lastName = String(values.get("lastName") ?? "").trim();
+    const email = String(values.get("email") ?? "").trim();
+    const password = String(values.get("password") ?? "");
+    setAuthBusy(true);
+    try {
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { first_name: firstName, last_name: lastName },
+          emailRedirectTo: confirmationRedirectUrl(),
+        },
+      });
+      if (error) throw error;
+
+      setPendingConfirmationEmail(email);
+      if (data.user && data.session) {
+        await loadAccount(data.user);
+      } else {
+        setAuthMessage("Si cette adresse peut être inscrite, un e-mail de confirmation vient d’être envoyé. Confirmez-la avant de vous connecter.");
+        go("signup-confirmation");
+      }
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "L’inscription a échoué. Réessayez.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAuthError("");
+    setAuthMessage("");
+    const client = createClient();
+    if (!client) {
+      setAuthError("Supabase Auth n’est pas configuré. Renseignez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      return;
+    }
+
+    const values = new FormData(event.currentTarget);
+    const email = String(values.get("email") ?? "").trim();
+    const password = String(values.get("password") ?? "");
+    setAuthBusy(true);
+    try {
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) {
+        if (error.code === "email_not_confirmed") {
+          setPendingConfirmationEmail(email);
+          setAuthMessage("L’adresse e-mail n’a pas encore été confirmée. Demandez un nouvel e-mail de confirmation.");
+          go("signup-confirmation");
+          return;
+        }
+        throw error;
+      }
+      if (!data.user) throw new Error("Supabase n’a renvoyé aucun utilisateur après la connexion.");
+      await loadAccount(data.user);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "La connexion a échoué.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const resendConfirmation = async () => {
+    const client = createClient();
+    if (!client || !pendingConfirmationEmail) {
+      setAuthError("Saisissez d’abord votre adresse e-mail dans le formulaire d’inscription.");
+      return;
+    }
+    setAuthError("");
+    setAuthMessage("");
+    setAuthBusy(true);
+    try {
+      const { error } = await client.auth.resend({
+        type: "signup",
+        email: pendingConfirmationEmail,
+        options: { emailRedirectTo: confirmationRedirectUrl() },
+      });
+      if (error) throw error;
+      setAuthMessage("Si un compte non confirmé existe pour cette adresse, un nouvel e-mail a été envoyé.");
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Impossible de renvoyer l’e-mail de confirmation.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
   return (
     <div className="app">
       <header className="topbar">
@@ -519,30 +717,19 @@ export function AppShell() {
           <button className={`btn ghost hideMobile ${page === "programme-a2" ? "active" : ""}`} onClick={() => go("programme-a2")}>
             Programme A2
           </button>
-          {paid ? (
+          {user ? (
             <>
-              <button className="btn ghost hideMobile" onClick={() => go("courses")}>
-                Cours
+              {(paid || user.role === "teacher") && (
+                <>
+                  <button className="btn ghost hideMobile" onClick={() => go("courses")}>Cours</button>
+                  <button className="btn ghost hideMobile" onClick={() => go("live")}>LIVE</button>
+                  <button className="btn ghost hideMobile" onClick={() => go("support")}>Accompagnement</button>
+                </>
+              )}
+              <button className="btn secondary" onClick={() => go(paid || user.role === "teacher" ? "dashboard" : "payment")}>
+                {user.role === "teacher" ? "Espace enseignant" : paid ? "Espace étudiant" : "Finaliser mon accès"}
               </button>
-              <button className="btn ghost hideMobile" onClick={() => go("live")}>
-                LIVE
-              </button>
-              <button className="btn ghost hideMobile" onClick={() => go("support")}>
-                Accompagnement
-              </button>
-              <button className="btn secondary" onClick={() => go("dashboard")}>
-                Mon espace
-              </button>
-              <button
-                className="btn ghost"
-                onClick={() => {
-                  setUser(null);
-                  setPaid(false);
-                  go("home");
-                }}
-              >
-                Quitter
-              </button>
+              <button className="btn ghost" onClick={() => void signOut()}>Déconnexion</button>
             </>
           ) : (
             <>
@@ -973,81 +1160,99 @@ export function AppShell() {
       })()}
       {page === "signup" && (
         <main className="shell">
-          <form
-            className="auth"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              setUser({ firstName: String(f.get("firstName")), email: String(f.get("email")) });
-              go("payment");
-            }}
-          >
-            <h1>Créer mon compte</h1>
+          <form className="auth" onSubmit={handleSignup}>
+            <h1>Créer mon espace étudiant</h1>
             <div className="field">
               <label>Prénom</label>
-              <input name="firstName" required />
+              <input name="firstName" autoComplete="given-name" required />
+            </div>
+            <div className="field">
+              <label>Nom</label>
+              <input name="lastName" autoComplete="family-name" required />
             </div>
             <div className="field">
               <label>Adresse e-mail</label>
-              <input name="email" type="email" required />
+              <input name="email" type="email" autoComplete="email" required />
             </div>
             <div className="field">
               <label>Mot de passe</label>
-              <input type="password" minLength={8} required />
+              <input name="password" type="password" autoComplete="new-password" minLength={8} required />
             </div>
-            <button className="btn primary full">Continuer</button>
+            {authError && <p className="authError" role="alert">{authError}</p>}
+            {authMessage && <p className="authMessage" role="status">{authMessage}</p>}
+            <button className="btn primary full" disabled={authBusy}>{authBusy ? "Création du compte…" : "Créer mon compte étudiant"}</button>
+            <p className="muted authRoleNote">Les comptes enseignants sont activés séparément par l’administration afin de protéger l’espace pédagogique.</p>
           </form>
         </main>
       )}
       {page === "login" && (
         <main className="shell">
-          <form
-            className="auth"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setUser({ firstName: "Ibrahima" });
-              setPaid(true);
-              go("dashboard");
-            }}
-          >
+          <form className="auth" onSubmit={handleLogin}>
             <h1>Connexion</h1>
             <div className="field">
               <label>E-mail</label>
-              <input defaultValue="demo@ensemble.fr" />
+              <input name="email" type="email" autoComplete="email" required />
             </div>
             <div className="field">
               <label>Mot de passe</label>
-              <input type="password" defaultValue="prototype" />
+              <input name="password" type="password" autoComplete="current-password" required />
             </div>
-            <button className="btn primary full">Se connecter</button>
+            {authError && <p className="authError" role="alert">{authError}</p>}
+            {authMessage && <p className="authMessage" role="status">{authMessage}</p>}
+            <button className="btn primary full" disabled={authBusy}>{authBusy ? "Connexion…" : "Se connecter"}</button>
           </form>
+        </main>
+      )}
+      {page === "signup-confirmation" && (
+        <main className="shell">
+          <section className="auth confirmationPanel">
+            <span className="liveInfoLabel">VÉRIFICATION DE L’ADRESSE</span>
+            <h1>Confirmez votre e-mail</h1>
+            <p className="muted">Consultez votre boîte de réception{pendingConfirmationEmail ? ` à l’adresse ${pendingConfirmationEmail}` : ""}. Ouvrez le lien reçu pour confirmer le compte, puis revenez vous connecter.</p>
+            <p className="muted">Pensez aussi aux dossiers courrier indésirable et promotions. L’envoi du message de confirmation est assuré par Supabase Auth et doit être activé dans les paramètres Email du projet.</p>
+            {authError && <p className="authError" role="alert">{authError}</p>}
+            {authMessage && <p className="authMessage" role="status">{authMessage}</p>}
+            <div className="actions">
+              <button className="btn primary" onClick={resendConfirmation} disabled={authBusy || !pendingConfirmationEmail}>
+                {authBusy ? "Envoi…" : "Renvoyer l’e-mail"}
+              </button>
+              <button className="btn ghost" onClick={() => go("login")}>Aller à la connexion</button>
+            </div>
+          </section>
         </main>
       )}
       {page === "payment" && (
         <main className="shell">
           <div className="auth">
-            <h1>Activez votre accès</h1>
+            <h1>Activez votre espace étudiant</h1>
             <div className="price">10 €</div>
-            <p className="muted">Paiement sécurisé par Stripe lorsque les clés sont configurées.</p>
+            <p className="muted">{user?.email ? `Compte confirmé : ${user.email}.` : "Compte confirmé."} Le règlement sécurisé par Stripe active l’adhésion après confirmation du paiement.</p>
+            {authError && <p className="authError" role="alert">{authError}</p>}
             <button
               className="btn primary full"
+              disabled={authBusy}
               onClick={async () => {
-                const r = await fetch("/api/checkout", { method: "POST" });
-                if (r.ok) {
-                  const d = await r.json();
-                  if (d.url) location.href = d.url;
-                  else {
+                setAuthBusy(true);
+                setAuthError("");
+                try {
+                  const response = await fetch("/api/checkout", { method: "POST" });
+                  const result = await response.json();
+                  if (!response.ok) throw new Error(result.error || "Le paiement n’a pas pu être préparé.");
+                  if (result.alreadyActive) {
                     setPaid(true);
                     go("dashboard");
+                    return;
                   }
-                } else {
-                  setPaid(true);
-                  notify("Mode démo activé");
-                  go("dashboard");
+                  if (!result.url) throw new Error("Stripe n’a pas renvoyé de lien de paiement.");
+                  window.location.assign(result.url);
+                } catch (error) {
+                  setAuthError(error instanceof Error ? error.message : "Le paiement a échoué.");
+                } finally {
+                  setAuthBusy(false);
                 }
               }}
             >
-              Payer et activer
+              {authBusy ? "Préparation du paiement…" : "Continuer vers Stripe"}
             </button>
           </div>
         </main>
@@ -1248,7 +1453,14 @@ export function AppShell() {
                     </button>
                   </form>
                 ) : (
-                  <p className="documentSetupNotice">Le stockage des documents n’est pas encore configuré. Appliquez la migration <code>002_course_documents.sql</code> dans Supabase et renseignez <code>SUPABASE_SERVICE_ROLE_KEY</code> ainsi que <code>COURSE_DOCUMENTS_ADMIN_TOKEN</code> dans les variables d’environnement du serveur.</p>
+                  <div className="documentSetupNotice" role="status">
+                    <strong>Bibliothèque indisponible</strong>
+                    <p>{documentSetupMessage}</p>
+                    {documentMissingVariables.length > 0 && (
+                      <p>Variables manquantes : {documentMissingVariables.map((variable) => <code key={variable}>{variable}</code>)}</p>
+                    )}
+                    <p>En local, ajoutez-les dans <code>.env.local</code>. Sur Vercel, ajoutez-les dans les paramètres Environment Variables puis redéployez. Si la migration est indiquée, exécutez <code>supabase/migrations/002_course_documents.sql</code> dans le SQL Editor du projet Supabase.</p>
+                  </div>
                 )}
               </section>
             </section>
