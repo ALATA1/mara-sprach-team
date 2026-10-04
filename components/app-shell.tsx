@@ -296,6 +296,12 @@ export function AppShell() {
     [photoOpen, setPhotoOpen] = useState(false),
     [logoOpen, setLogoOpen] = useState(false),
     [formationMenuOpen, setFormationMenuOpen] = useState(false),
+    [aboutMenuOpen, setAboutMenuOpen] = useState(false),
+    [languageMenuOpen, setLanguageMenuOpen] = useState(false),
+    [uiLanguage, setUiLanguage] = useState<"fr" | "de">("fr"),
+    [cookieChoice, setCookieChoice] = useState<"all" | "necessary" | null>(null),
+    [cookiePreferencesOpen, setCookiePreferencesOpen] = useState(false),
+    [cookieReady, setCookieReady] = useState(false),
     [liveJoined, setLiveJoined] = useState(false),
     [activeCourseTab, setActiveCourseTab] = useState<"learning" | "documents">("learning"),
     [courseDocuments, setCourseDocuments] = useState<UploadedCourseDocument[]>([]),
@@ -491,6 +497,26 @@ export function AppShell() {
   useEffect(() => {
     localStorage.setItem("ensemble-v1", JSON.stringify({ registered, support, completedGermanLessons }));
   }, [registered, support, completedGermanLessons]);
+
+  useEffect(() => {
+    try {
+      const storedChoice = localStorage.getItem("mara-cookie-consent-v1");
+      if (storedChoice === "all" || storedChoice === "necessary") setCookieChoice(storedChoice);
+    } finally {
+      setCookieReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const storedLanguage = localStorage.getItem("mara-ui-language-v1");
+    if (storedLanguage === "fr" || storedLanguage === "de") setUiLanguage(storedLanguage);
+  }, []);
+
+  const saveCookieChoice = (choice: "all" | "necessary") => {
+    localStorage.setItem("mara-cookie-consent-v1", choice);
+    setCookieChoice(choice);
+    setCookiePreferencesOpen(false);
+  };
   const go = (p: string) => {
       setPage(p);
       scrollTo(0, 0);
@@ -800,11 +826,66 @@ export function AppShell() {
         </div>
         <nav className="nav">
           <button className="btn ghost hideMobile" onClick={() => go("home")}>
-            Accueil
+            {uiLanguage === "fr" ? "Accueil" : "Startseite"}
           </button>
-          <button className={`btn ghost hideMobile ${page === "pdg" ? "active" : ""}`} onClick={() => go("pdg")}>
-            PDG
-          </button>
+          <div
+            className={`navDropdown ${aboutMenuOpen ? "open" : ""}`}
+            onMouseEnter={() => setAboutMenuOpen(true)}
+            onMouseLeave={() => setAboutMenuOpen(false)}
+            onFocusCapture={() => setAboutMenuOpen(true)}
+            onBlurCapture={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setAboutMenuOpen(false);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setAboutMenuOpen(false);
+                event.currentTarget.querySelector<HTMLButtonElement>(".aboutTrigger")?.focus();
+              }
+            }}
+          >
+            <button
+              type="button"
+              className={`btn ghost hideMobile formationTrigger aboutTrigger ${page === "pdg" ? "active" : ""}`}
+              aria-expanded={aboutMenuOpen}
+              onClick={() => setAboutMenuOpen(true)}
+            >
+              {uiLanguage === "fr" ? "À propos" : "Über uns"}
+            </button>
+            <div className="formationMenu" aria-label={uiLanguage === "fr" ? "Sous-menus À propos" : "Untermenü Über uns"}>
+              <button className={page === "pdg" ? "active" : ""} onClick={() => { setAboutMenuOpen(false); go("pdg"); }}>
+                {uiLanguage === "fr" ? "Qui sommes-nous ?" : "Wer wir sind"}
+              </button>
+              <button className={page === "contact" ? "active" : ""} type="button" onClick={() => { setAboutMenuOpen(false); go("contact"); }}>
+                {uiLanguage === "fr" ? "Contact" : "Kontakt"}
+              </button>
+            </div>
+          </div>
+          <div
+            className={`navDropdown ${languageMenuOpen ? "open" : ""}`}
+            onMouseEnter={() => setLanguageMenuOpen(true)}
+            onMouseLeave={() => setLanguageMenuOpen(false)}
+            onFocusCapture={() => setLanguageMenuOpen(true)}
+            onBlurCapture={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setLanguageMenuOpen(false);
+            }}
+          >
+            <button
+              type="button"
+              className="btn ghost hideMobile formationTrigger languageTrigger"
+              aria-expanded={languageMenuOpen}
+              onClick={() => setLanguageMenuOpen(true)}
+            >
+              {uiLanguage === "fr" ? "Français" : "Deutsch"}
+            </button>
+            <div className="formationMenu" aria-label={uiLanguage === "fr" ? "Langue de l’application" : "Sprache der Anwendung"}>
+              <button className={uiLanguage === "fr" ? "active" : ""} onClick={() => { setUiLanguage("fr"); localStorage.setItem("mara-ui-language-v1", "fr"); setLanguageMenuOpen(false); }}>
+                Français
+              </button>
+              <button className={uiLanguage === "de" ? "active" : ""} onClick={() => { setUiLanguage("de"); localStorage.setItem("mara-ui-language-v1", "de"); setLanguageMenuOpen(false); }}>
+                Deutsch
+              </button>
+            </div>
+          </div>
           {user && (
             <div
               className={`navDropdown ${formationMenuOpen ? "open" : ""}`}
@@ -829,12 +910,12 @@ export function AppShell() {
                 aria-expanded={formationMenuOpen}
                 onClick={() => setFormationMenuOpen(true)}
               >
-                Formation
+                {uiLanguage === "fr" ? "Formation" : "Lernen"}
               </button>
               <div className="formationMenu" aria-label="Sous-menus Formation">
                 {(paid || user.role === "teacher") && (
                   <button className={page === "courses" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("courses"); }}>
-                    Cours
+                    {uiLanguage === "fr" ? "Cours" : "Kurse"}
                   </button>
                 )}
                 <button className={page === "programme-a1" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-a1"); }}>
@@ -854,21 +935,21 @@ export function AppShell() {
               {(paid || user.role === "teacher") && (
                 <>
                   <button className="btn ghost hideMobile" onClick={() => go("live")}>LIVE</button>
-                  <button className="btn ghost hideMobile" onClick={() => go("support")}>Accompagnement</button>
+                  <button className="btn ghost hideMobile" onClick={() => go("support")}>{uiLanguage === "fr" ? "Accompagnement" : "Begleitung"}</button>
                 </>
               )}
               <button className="btn secondary" onClick={() => go(paid || user.role === "teacher" ? "dashboard" : "payment")}>
-                {user.role === "teacher" ? "Espace enseignant" : paid ? "Espace étudiant" : "Finaliser mon accès"}
+                {user.role === "teacher" ? (uiLanguage === "fr" ? "Espace enseignant" : "Lehrkraftbereich") : paid ? (uiLanguage === "fr" ? "Espace étudiant" : "Lernbereich") : (uiLanguage === "fr" ? "Finaliser mon accès" : "Zugang abschließen")}
               </button>
-              <button className="btn ghost" onClick={() => void signOut()}>Déconnexion</button>
+              <button className="btn ghost" onClick={() => void signOut()}>{uiLanguage === "fr" ? "Déconnexion" : "Abmelden"}</button>
             </>
           ) : (
             <>
               <button className="btn ghost" onClick={() => go("login")}>
-                Connexion
+                {uiLanguage === "fr" ? "Connexion" : "Anmelden"}
               </button>
               <button className="btn primary" onClick={() => go("signup")}>
-                Créer un compte
+                {uiLanguage === "fr" ? "Créer un compte" : "Konto erstellen"}
               </button>
             </>
           )}
@@ -888,7 +969,7 @@ export function AppShell() {
               >
                 <Image
                   src="/logo/DG.png"
-                  alt="Portrait du fondateur"
+                  alt={uiLanguage === "fr" ? "Portrait du fondateur" : "Porträt des Gründers"}
                   width={92}
                   height={92}
                   style={{
@@ -912,7 +993,7 @@ export function AppShell() {
                       marginBottom: "5px",
                     }}
                   >
-                    Mot du fondateur
+                    {uiLanguage === "fr" ? "Mot du fondateur" : "Wort des Gründers"}
                   </div>
 
                   <div
@@ -922,26 +1003,24 @@ export function AppShell() {
                       lineHeight: 1.5,
                     }}
                   >
-                    « Mieux parler,
-                    <br />
-                    c’est mieux s’intégrer. »
+                    {uiLanguage === "fr" ? <>« Mieux parler,<br />c’est mieux s’intégrer. »</> : <>„Besser sprechen,<br />besser ankommen.“</>}
                   </div>
                 </div>
               </div>
 
-              <span className="eyebrow">Apprendre, progresser, être accompagné.</span>
+              <span className="eyebrow">{uiLanguage === "fr" ? "Apprendre, progresser, être accompagné." : "Lernen, Fortschritte machen, begleitet werden."}</span>
 
               <h1>
-                Apprendre une langue et construire un avenir.
+                {uiLanguage === "fr" ? "Apprendre une langue et construire un avenir." : "Eine Sprache lernen und eine Zukunft aufbauen."}
               </h1>
 
               <p>
-                Cours de français, cours d’allemand et accompagnement personnalisé pour réussir votre intégration, progresser et construire votre avenir.
+                {uiLanguage === "fr" ? "Cours de français, cours d’allemand et accompagnement personnalisé pour réussir votre intégration, progresser et construire votre avenir." : "Französisch- und Deutschkurse sowie persönliche Begleitung, damit Sie sich integrieren, Fortschritte machen und Ihre Zukunft gestalten können."}
               </p>
 
               <div className="actions">
                 <button className="btn primary" onClick={() => go("signup")}>
-                  Commencer à partir de 25 €
+                  {uiLanguage === "fr" ? "Commencer à partir de 25 €" : "Ab 25 € starten"}
                 </button>
 
                 <button
@@ -950,7 +1029,7 @@ export function AppShell() {
                     document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })
                   }
                 >
-                  Découvrir les services
+                  {uiLanguage === "fr" ? "Découvrir les services" : "Angebote entdecken"}
                 </button>
               </div>
             </div>
@@ -963,7 +1042,7 @@ export function AppShell() {
                   marginBottom: "15px",
                 }}
               >
-                VOTRE PARCOURS
+                {uiLanguage === "fr" ? "VOTRE PARCOURS" : "IHR LERNWEG"}
               </div>
 
               <h2
@@ -973,9 +1052,9 @@ export function AppShell() {
                   marginBottom: "25px",
                 }}
               >
-                Un espace simple pour
+                {uiLanguage === "fr" ? "Un espace simple pour" : "Ein einfacher Ort, um"}
                 <br />
-                progresser à votre rythme
+                {uiLanguage === "fr" ? "progresser à votre rythme" : "im eigenen Tempo zu lernen"}
               </h2>
 
               <button
@@ -986,8 +1065,8 @@ export function AppShell() {
                   go("courses");
                 }}
               >
-                <strong>🎬 Cours en vidéo</strong>
-                Disponibles quand vous le souhaitez
+                <strong>🎬 {uiLanguage === "fr" ? "Cours en vidéo" : "Videokurse"}</strong>
+                {uiLanguage === "fr" ? "Disponibles quand vous le souhaitez" : "Jederzeit verfügbar"}
               </button>
 
               <button
@@ -995,8 +1074,8 @@ export function AppShell() {
                 className="mini miniButton"
                 onClick={() => go("live")}
               >
-                <strong>🎥 Sessions LIVE</strong>
-                Échangez avec des professeurs en direct
+                <strong>🎥 {uiLanguage === "fr" ? "Sessions LIVE" : "Live-Unterricht"}</strong>
+                {uiLanguage === "fr" ? "Échangez avec des professeurs en direct" : "Sprechen Sie live mit Lehrkräften"}
               </button>
 
               <button
@@ -1004,8 +1083,8 @@ export function AppShell() {
                 className="mini miniButton"
                 onClick={() => go("support")}
               >
-                <strong>🤝 Accompagnement</strong>
-                Un volontaire vous aide dans vos démarches
+                <strong>🤝 {uiLanguage === "fr" ? "Accompagnement" : "Persönliche Begleitung"}</strong>
+                {uiLanguage === "fr" ? "Un volontaire vous aide dans vos démarches" : "Freiwillige unterstützen Sie bei Ihren Anliegen"}
               </button>
             </div>
             </section>
@@ -1032,11 +1111,10 @@ export function AppShell() {
                 
                 </div>
 
-                <h3> 📚 Français et allemand</h3>
+                <h3> 📚 {uiLanguage === "fr" ? "Français et allemand" : "Französisch und Deutsch"}</h3>
 
                 <p className="muted">
-                Des parcours organisés par niveau avec vidéos,
-                exercices et documents.
+                {uiLanguage === "fr" ? "Des parcours organisés par niveau avec vidéos, exercices et documents." : "Lernpfade nach Niveau mit Videos, Übungen und Lernmaterialien."}
                 </p>
             </div>
 
@@ -1057,11 +1135,10 @@ export function AppShell() {
                 
                 </div>
 
-                <h3> 🎥 Cours en direct</h3>
+                <h3> 🎥 {uiLanguage === "fr" ? "Cours en direct" : "Live-Unterricht"}</h3>
 
                 <p className="muted">
-                Participez à des séances collectives
-                et posez vos questions.
+                {uiLanguage === "fr" ? "Participez à des séances collectives et posez vos questions." : "Nehmen Sie an Gruppensitzungen teil und stellen Sie Ihre Fragen."}
                 </p>
             </div>
 
@@ -1082,11 +1159,10 @@ export function AppShell() {
                 
                 </div>
 
-                <h3>🧭 Aide personnalisée</h3>
+                <h3>🧭 {uiLanguage === "fr" ? "Aide personnalisée" : "Persönliche Unterstützung"}</h3>
 
                 <p className="muted">
-                Déposez une demande et suivez sa
-                prise en charge par un volontaire.
+                {uiLanguage === "fr" ? "Déposez une demande et suivez sa prise en charge par un volontaire." : "Stellen Sie eine Anfrage und verfolgen Sie die Unterstützung durch Freiwillige."}
                 </p>
             </div>
             </section>
@@ -1099,7 +1175,7 @@ export function AppShell() {
                     }}
                 >
                     <span className="eyebrow">
-                    NOS OFFRES
+                    {uiLanguage === "fr" ? "NOS OFFRES" : "UNSERE ANGEBOTE"}
                     </span>
 
                     <h2
@@ -1108,17 +1184,17 @@ export function AppShell() {
                         marginTop: "15px",
                     }}
                     >
-                    Choisissez votre formule
+                    {uiLanguage === "fr" ? "Choisissez votre formule" : "Wählen Sie Ihr Paket"}
                     </h2>
 
                     <p className="muted">
-                    Des solutions adaptées à vos besoins et à votre rythme.
+                    {uiLanguage === "fr" ? "Des solutions adaptées à vos besoins et à votre rythme." : "Passende Angebote für Ihre Bedürfnisse und Ihr Tempo."}
                     </p>
                 </div>
 
                 <div className="grid">
                     <div className="card">
-                    <h3>Découverte</h3>
+                    <h3>{uiLanguage === "fr" ? "Découverte" : "Einstieg"}</h3>
 
                     <div
                         style={{
@@ -1131,15 +1207,15 @@ export function AppShell() {
                         25 €
                     </div>
 
-                    <p>✓ Accès aux cours</p>
-                    <p>✓ Documents pédagogiques</p>
-                    <p>✓ Progression personnelle</p>
+                    <p>✓ {uiLanguage === "fr" ? "Accès aux cours" : "Zugang zu den Kursen"}</p>
+                    <p>✓ {uiLanguage === "fr" ? "Documents pédagogiques" : "Lernmaterialien"}</p>
+                    <p>✓ {uiLanguage === "fr" ? "Progression personnelle" : "Persönlicher Lernfortschritt"}</p>
 
                     <button
                         className="btn primary full"
                         onClick={() => go("signup")}
                     >
-                        Commencer
+                        {uiLanguage === "fr" ? "Commencer" : "Starten"}
                     </button>
                     </div>
 
@@ -1162,15 +1238,15 @@ export function AppShell() {
                         40 €
                     </div>
 
-                    <p>✓ Cours complets</p>
-                    <p>✓ Sessions LIVE</p>
-                    <p>✓ Exercices avancés</p>
+                    <p>✓ {uiLanguage === "fr" ? "Cours complets" : "Vollständige Kurse"}</p>
+                    <p>✓ {uiLanguage === "fr" ? "Sessions LIVE" : "Live-Sitzungen"}</p>
+                    <p>✓ {uiLanguage === "fr" ? "Exercices avancés" : "Fortgeschrittene Übungen"}</p>
 
                     <button
                         className="btn primary full"
                         onClick={() => go("signup")}
                     >
-                        Choisir
+                        {uiLanguage === "fr" ? "Choisir" : "Auswählen"}
                     </button>
                     </div>
 
@@ -1188,15 +1264,15 @@ export function AppShell() {
                         50 €
                     </div>
 
-                    <p>✓ Tout Standard</p>
-                    <p>✓ Accompagnement individuel</p>
-                    <p>✓ Priorité sur les demandes</p>
+                    <p>✓ {uiLanguage === "fr" ? "Tout Standard" : "Alle Standard-Leistungen"}</p>
+                    <p>✓ {uiLanguage === "fr" ? "Accompagnement individuel" : "Individuelle Begleitung"}</p>
+                    <p>✓ {uiLanguage === "fr" ? "Priorité sur les demandes" : "Bevorzugte Bearbeitung von Anfragen"}</p>
 
                     <button
                         className="btn primary full"
                         onClick={() => go("signup")}
                     >
-                        Choisir
+                        {uiLanguage === "fr" ? "Choisir" : "Auswählen"}
                     </button>
                     </div>
                 </div>
@@ -1237,6 +1313,16 @@ export function AppShell() {
               </p>
             ))}
           </article>
+        </main>
+      )}
+      {page === "contact" && (
+        <main className="shell contactPage">
+          <section className="card">
+            <span className="liveInfoLabel">MARA-SPRACH TEAM</span>
+            <h1>{uiLanguage === "fr" ? "Contact" : "Kontakt"}</h1>
+            <p>{uiLanguage === "fr" ? "Une question sur les cours ou l’accompagnement ? Appelez-nous." : "Fragen zu Kursen oder zur Begleitung? Rufen Sie uns an."}</p>
+            <a className="btn primary" href="tel:+33618657720">+33 6 18 65 77 20</a>
+          </section>
         </main>
       )}
       {(page === "programme-a1" || page === "programme-a2" || page === "programme-b1") && (() => {
@@ -2036,8 +2122,41 @@ export function AppShell() {
         </main>
       )}
       <div className="footer">
-        <p>Par Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Cours de (Français • Allemand) et Accompagnement]</p>
+        <p>{uiLanguage === "fr" ? "Par Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Cours de (Français • Allemand) et Accompagnement]" : "Von Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Französisch- und Deutschkurse sowie Begleitung]"}</p>
+        <button type="button" className="cookieSettingsLink" onClick={() => setCookiePreferencesOpen(true)}>
+          {uiLanguage === "fr" ? "Préférences cookies" : "Cookie-Einstellungen"}
+        </button>
       </div>
+      {cookieReady && (!cookieChoice || cookiePreferencesOpen) && (
+        <aside className="cookieBanner" role="dialog" aria-label={uiLanguage === "fr" ? "Préférences de cookies" : "Cookie-Einstellungen"}>
+          <h2>{cookiePreferencesOpen ? (uiLanguage === "fr" ? "Vos préférences" : "Ihre Einstellungen") : (uiLanguage === "fr" ? "Votre confidentialité compte" : "Ihre Privatsphäre ist uns wichtig")}</h2>
+          {cookiePreferencesOpen ? (
+            <div className="cookieDetails">
+              <p><strong>{uiLanguage === "fr" ? "Cookies nécessaires" : "Notwendige Cookies"}</strong><br />{uiLanguage === "fr" ? "Toujours actifs pour la connexion et le fonctionnement du site." : "Für Anmeldung und Betrieb der Website immer aktiv."}</p>
+              <p><strong>{uiLanguage === "fr" ? "Mesure d’audience" : "Reichweitenmessung"}</strong><br />{uiLanguage === "fr" ? "Aucun outil de mesure d’audience n’est actuellement activé." : "Derzeit ist kein Reichweitenmessungs-Tool aktiviert."}</p>
+              <button type="button" className="btn secondary" onClick={() => saveCookieChoice("necessary")}>
+                {uiLanguage === "fr" ? "Enregistrer les cookies nécessaires" : "Nur notwendige Cookies speichern"}
+              </button>
+              <button type="button" className="cookieTextButton" onClick={() => setCookiePreferencesOpen(false)}>
+                {uiLanguage === "fr" ? "Retour" : "Zurück"}
+              </button>
+            </div>
+          ) : (
+            <>
+              <p>{uiLanguage === "fr" ? "Les cookies et le stockage local nécessaires assurent la connexion et le fonctionnement de Mara-Sprach Team. Vous pouvez accepter tout le stockage ou garder uniquement le nécessaire." : "Notwendige Cookies und lokaler Speicher ermöglichen die Anmeldung und den Betrieb von Mara-Sprach Team. Sie können alles akzeptieren oder nur notwendige Speicherungen zulassen."}</p>
+              <button type="button" className="cookiePrimaryButton" onClick={() => saveCookieChoice("all")}>
+                {uiLanguage === "fr" ? "Tout accepter" : "Alle akzeptieren"}
+              </button>
+              <button type="button" className="cookieSecondaryButton" onClick={() => saveCookieChoice("necessary")}>
+                {uiLanguage === "fr" ? "Uniquement nécessaires" : "Nur notwendige"}
+              </button>
+              <button type="button" className="cookieTextButton" onClick={() => setCookiePreferencesOpen(true)}>
+                {uiLanguage === "fr" ? "Gérer mes préférences" : "Einstellungen verwalten"}
+              </button>
+            </>
+          )}
+        </aside>
+      )}
       {toast && <div className="toast">{toast}</div>}
       {photoOpen && (
         <div className="photoModal" onClick={() => setPhotoOpen(false)}>

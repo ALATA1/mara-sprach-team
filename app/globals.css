@@ -1890,6 +1890,72 @@ select {
   border-radius: 18px;
   box-shadow: 0 16px 28px rgba(37, 99, 235, 0.08);
 }
+.cookieSettingsLink,
+.cookieTextButton {
+  padding: 7px 4px;
+  border: 0;
+  background: transparent;
+  color: #135e54;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.cookieBanner {
+  position: fixed;
+  z-index: 30;
+  right: 20px;
+  bottom: 20px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(80vh, 620px);
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid #cbd5d1;
+  border-radius: 12px;
+  background: #fffdf2;
+  box-shadow: 0 14px 40px rgba(23, 32, 51, 0.24);
+  color: #172033;
+}
+.cookieBanner h2 {
+  margin: 0 0 10px;
+  font-size: 21px;
+}
+.cookieBanner p {
+  margin: 0 0 14px;
+  color: #45524d;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.cookieBanner .cookiePrimaryButton,
+.cookieBanner .cookieSecondaryButton {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 9px;
+  border: 1px solid #176b60;
+  border-radius: 22px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.cookieBanner .cookiePrimaryButton {
+  background: #176b60;
+  color: #fff;
+}
+.cookieBanner .cookieSecondaryButton {
+  background: #fff;
+  color: #135e54;
+}
+.cookieBanner .cookieTextButton {
+  display: block;
+  margin: 7px auto 0;
+  color: #25343b;
+}
+.cookieDetails {
+  display: grid;
+  gap: 10px;
+}
+.cookieDetails .btn {
+  width: 100%;
+  justify-content: center;
+}
 @media (max-width: 980px) {
   .topbar {
     align-items: flex-start;
@@ -1915,6 +1981,13 @@ select {
 }
 
 @media (max-width: 600px) {
+  .cookieBanner {
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+    padding: 18px;
+  }
+
   .shell {
     padding: 20px 16px;
   }
