@@ -1208,7 +1208,7 @@ export function AppShell() {
           <section className="auth confirmationPanel">
             <span className="liveInfoLabel">VÉRIFICATION DE L’ADRESSE</span>
             <h1>Confirmez votre e-mail</h1>
-            <p className="muted">Consultez votre boîte de réception{pendingConfirmationEmail ? ` à l’adresse ${pendingConfirmationEmail}` : ""}. Ouvrez le lien reçu pour confirmer le compte, puis revenez vous connecter.</p>
+            <p className="muted">Consultez votre boîte de réception{pendingConfirmationEmail ? ` à l’adresse ${pendingConfirmationEmail}` : ""}. Ouvrez le lien reçu pour confirmer votre compte ; vous serez ensuite redirigé vers l’activation de votre espace étudiant.</p>
             <p className="muted">Pensez aussi aux dossiers courrier indésirable et promotions. L’envoi du message de confirmation est assuré par Supabase Auth et doit être activé dans les paramètres Email du projet.</p>
             {authError && <p className="authError" role="alert">{authError}</p>}
             {authMessage && <p className="authMessage" role="status">{authMessage}</p>}

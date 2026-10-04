@@ -15,12 +15,16 @@ export async function POST(req: Request) {
   if (!signature) return NextResponse.json({ error: "Signature absente" }, { status: 400 });
   try {
     const event = stripe.webhooks.constructEvent(body, signature, secret);
-    if (event.type === "checkout.session.completed") {
+    if (
+      event.type === "checkout.session.completed" ||
+      event.type === "checkout.session.async_payment_succeeded"
+    ) {
       const session = event.data.object;
       const userId = session.metadata?.user_id ?? session.client_reference_id;
-      if (session.mode !== "payment" || session.payment_status !== "paid" || !userId) {
-        return NextResponse.json({ error: "Session payée ou identité client invalide" }, { status: 400 });
+      if (session.mode !== "payment" || !userId) {
+        return NextResponse.json({ error: "Type de session ou identité client invalide" }, { status: 400 });
       }
+      if (session.payment_status !== "paid") return NextResponse.json({ received: true });
 
       const { error } = await supabase.from("memberships").upsert({
         user_id: userId,
