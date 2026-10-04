@@ -786,12 +786,16 @@ export function AppShell() {
           <button className={`btn ghost hideMobile ${page === "pdg" ? "active" : ""}`} onClick={() => go("pdg")}>
             PDG
           </button>
-          <button className={`btn ghost hideMobile ${page === "programme-a1" ? "active" : ""}`} onClick={() => go("programme-a1")}>
-            Programme A1
-          </button>
-          <button className={`btn ghost hideMobile ${page === "programme-a2" ? "active" : ""}`} onClick={() => go("programme-a2")}>
-            Programme A2
-          </button>
+          {user && (
+            <>
+              <button className={`btn ghost hideMobile ${page === "programme-a1" ? "active" : ""}`} onClick={() => go("programme-a1")}>
+                Programme A1
+              </button>
+              <button className={`btn ghost hideMobile ${page === "programme-a2" ? "active" : ""}`} onClick={() => go("programme-a2")}>
+                Programme A2
+              </button>
+            </>
+          )}
           {user ? (
             <>
               {(paid || user.role === "teacher") && (
