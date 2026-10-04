@@ -1,8 +1,9 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { JitsiRoom } from "@/components/jitsi-room";
 
 type Course = {
   id: number;
@@ -53,6 +54,17 @@ type LiveSession = {
   roomUrl: string;
   course?: string;
   startAt?: string;
+};
+
+type UploadedCourseDocument = {
+  id: string;
+  course_key: string;
+  title: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  public_url: string;
+  created_at: string;
 };
 
 const JITSI_LIVE_URLS = [
@@ -242,7 +254,6 @@ const courses: Course[] = [
     curriculum: germanA1Curriculum,
   },
 ];
-const liveParticipants = ["Sophie Martin", "Amine", "Yasmina", "Lucas", "Leila", "Paul", "Noémie"];
 export function AppShell() {
   const [page, setPage] = useState("home"),
     [user, setUser] = useState<{ firstName: string; email?: string } | null>(null),
@@ -255,11 +266,14 @@ export function AppShell() {
     [photoOpen, setPhotoOpen] = useState(false),
     [logoOpen, setLogoOpen] = useState(false),
     [liveJoined, setLiveJoined] = useState(false),
-    [micOn, setMicOn] = useState(true),
-    [cameraOn, setCameraOn] = useState(true),
-    [chatOpen, setChatOpen] = useState(true),
-    [chatInput, setChatInput] = useState(""),
-    [questionInput, setQuestionInput] = useState(""),
+    [activeCourseTab, setActiveCourseTab] = useState<"learning" | "documents">("learning"),
+    [courseDocuments, setCourseDocuments] = useState<UploadedCourseDocument[]>([]),
+    [documentStorageAvailable, setDocumentStorageAvailable] = useState(false),
+    [documentAdminToken, setDocumentAdminToken] = useState(""),
+    [documentTitle, setDocumentTitle] = useState(""),
+    [documentFile, setDocumentFile] = useState<File | null>(null),
+    [documentUploadError, setDocumentUploadError] = useState(""),
+    [documentUploading, setDocumentUploading] = useState(false),
     [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({}),
     [quizSubmitted, setQuizSubmitted] = useState(false),
     [activeGermanLessonId, setActiveGermanLessonId] = useState(1),
@@ -269,7 +283,6 @@ export function AppShell() {
     [completedGermanLessons, setCompletedGermanLessons] = useState<number[]>([]),
     [liveSessions, setLiveSessions] = useState<LiveSession[]>(defaultLiveSessions),
     [activeLive, setActiveLive] = useState<LiveSession>(defaultLiveSessions[0]);
-  const livePopupRef = useRef<Window | null>(null);
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("ensemble-v1") || "null");
@@ -314,6 +327,28 @@ export function AppShell() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+
+    fetch("/api/course-documents")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Impossible de charger les documents.");
+        return response.json();
+      })
+      .then((result) => {
+        if (!active) return;
+        setDocumentStorageAvailable(Boolean(result.configured));
+        setCourseDocuments(Array.isArray(result.documents) ? result.documents : []);
+      })
+      .catch(() => {
+        if (active) setDocumentStorageAvailable(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!liveSessions.length) return;
     setActiveLive((current) => {
       if (current && liveSessions.some((item) => item.id === current.id)) return current;
@@ -339,6 +374,12 @@ export function AppShell() {
   const germanCurriculum = selected.curriculum;
   const activeGermanLesson = germanCurriculum?.lessons.find((lesson) => lesson.id === activeGermanLessonId);
   const activeGermanQuiz = germanCurriculum?.quizzes.find((quiz) => quiz.id === activeGermanQuizId);
+  const totalCourseLessons = courses.reduce((total, course) => total + course.lessons, 0);
+  const completedCourseLessons = courses.reduce(
+    (total, course) => total + (course.curriculum ? completedGermanLessons.length : Math.round((course.progress / 100) * course.lessons)),
+    0,
+  );
+  const overallCourseProgress = Math.round((completedCourseLessons / totalCourseLessons) * 100);
   const card = (c: Course) => {
     const courseProgress = c.curriculum
       ? Math.round((completedGermanLessons.length / c.curriculum.lessons.length) * 100)
@@ -367,7 +408,9 @@ export function AppShell() {
             setActiveGermanQuizId(null);
             setGermanQuizAnswers({});
             setGermanQuizResults({});
-            setCompletedGermanLessons([]);
+            setActiveCourseTab("learning");
+            setDocumentTitle("");
+            setDocumentFile(null);
             go("course");
           }}
         >
@@ -405,8 +448,8 @@ export function AppShell() {
             className="btn ghost"
             onClick={() => {
               setActiveLive(l);
-              setSelected(courses[0]);
-              go("course");
+              setSelected(courses.find((course) => course.language === l.course) ?? courses[0]);
+              go("live-room");
               openLiveRoom(l);
             }}
           >
@@ -418,27 +461,14 @@ export function AppShell() {
   });
   const openLiveRoom = (item: LiveSession) => {
     setActiveLive(item);
-    setLiveJoined(true);
-    if (typeof window !== "undefined") {
-      const popup = window.open(item.roomUrl, "_blank", "noopener,noreferrer");
-      livePopupRef.current = popup;
-    }
-    notify("Salle live ouverte");
+    setLiveJoined(false);
+    notify("Connexion à la salle live");
   };
 
   const leaveLiveRoom = () => {
-    if (livePopupRef.current && !livePopupRef.current.closed) {
-      livePopupRef.current.close();
-      livePopupRef.current = null;
-    }
     setLiveJoined(false);
-    setPage("home");
+    go("live");
     notify("Vous avez quitté le live");
-  };
-
-  const joinLiveSession = (item = activeLive) => {
-    if (!item) return;
-    openLiveRoom(item);
   };
   const copyLiveLink = async () => {
     if (!activeLive?.roomUrl) return;
@@ -451,17 +481,6 @@ export function AppShell() {
       notify("Lien prêt à être partagé");
     }
   };
-  const liveMessages = [
-    { user: "Sophie", text: "Bonjour à tous ! On va parler aujourd’hui de la présentation." },
-    { user: "Amine", text: "Très bien, je peux répondre en français." },
-    { user: "Leila", text: "Je veux aussi améliorer ma prononciation." },
-    { user: "Vous", text: "Je suis prêt pour la séance." },
-  ];
-  const liveQuestions = [
-    { user: "Amine", text: "Comment distinguer le féminin et le masculin ?" },
-    { user: "Leila", text: "Peut-on parler plus lentement pendant la séance ?" },
-    { user: "Lucas", text: "Je voudrais des exemples concrets de phrases." },
-  ];
   return (
     <div className="app">
       <header className="topbar">
@@ -570,7 +589,7 @@ export function AppShell() {
                   >
                     « Mieux parler,
                     <br />
-                    c'est mieux s'intégrer. »
+                    c’est mieux s’intégrer. »
                   </div>
                 </div>
               </div>
@@ -942,10 +961,10 @@ export function AppShell() {
           <p className="muted">Reprenez votre apprentissage.</p>
           <div className="stats">
             <div className="stat">
-              Progression<b>28 %</b>
+              Progression<b>{overallCourseProgress} %</b>
             </div>
             <div className="stat">
-              Leçons<b>4</b>
+              Leçons terminées<b>{completedCourseLessons} / {totalCourseLessons}</b>
             </div>
             <div className="stat">
               LIVE<b>{registered.length}</b>
@@ -954,9 +973,20 @@ export function AppShell() {
               Accès<b style={{ color: "#059669" }}>Actif</b>
             </div>
           </div>
-          <div className="grid">{courses.map(card)}</div>
-          <h2>Prochains LIVE</h2>
-          <div className="card">{liveRows}</div>
+          <div className="dashboardDestinations">
+            <section className="dashboardDestination">
+              <span className="liveInfoLabel">APPRENTISSAGE</span>
+              <h2>Vos cours</h2>
+              <p className="muted">Retrouvez vos parcours, les leçons et leurs documents pédagogiques.</p>
+              <button className="btn primary" onClick={() => go("courses")}>Ouvrir le catalogue</button>
+            </section>
+            <section className="dashboardDestination">
+              <span className="liveInfoLabel">RENDEZ-VOUS</span>
+              <h2>Sessions LIVE</h2>
+              <p className="muted">Consultez le calendrier, gérez vos inscriptions et rejoignez une séance.</p>
+              <button className="btn secondary" onClick={() => go("live")}>Voir le calendrier</button>
+            </section>
+          </div>
         </main>
       )}
       {page === "courses" && (
@@ -976,204 +1006,202 @@ export function AppShell() {
           <div className="grid">{visible.map(card)}</div>
         </main>
       )}
-      {page === "course" && (
+      {(page === "course" || page === "live-room") && (
         <main className="shell">
-          <button className="btn ghost" onClick={() => go("courses")}>
-            ← Catalogue
+          <button className="btn ghost" onClick={() => go(page === "live-room" ? "live" : "courses")}>
+            {page === "live-room" ? "← Calendrier LIVE" : "← Catalogue"}
           </button>
-          <h1>{selected.title}</h1>
-          <div className="livePanel">
-            <div className="liveHeader">
-              <div>
-                <span className="liveBadge">EN DIRECT</span>
-                <h2>{activeLive?.title || "Leçon 1 : Se présenter"}</h2>
-              </div>
-              <div className="liveMeta">
-                <span className="liveDot" />
-                {liveJoined ? `${liveParticipants.length + 1} participants` : `${liveParticipants.length} participants`}
-              </div>
-            </div>
-
-            <div className="liveInfoBar">
-              <div className="liveInfoItem">
-                <span className="liveInfoLabel">Professeur</span>
-                <strong>{activeLive?.teacher || "Sophie Martin"}</strong>
-              </div>
-              <div className="liveInfoItem">
-                <span className="liveInfoLabel">Horaire</span>
-                <strong>{activeLive?.date || "Jeudi 18:30"}</strong>
-              </div>
-              <div className="liveInfoItem linkItem">
-                <span className="liveInfoLabel">Salle</span>
-                <a
-                  href={activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: "#2563eb", textDecoration: "underline", fontWeight: 700 }}
-                >
-                  {activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
-                </a>
-              </div>
-            </div>
-
-            <div className="videoConference tripleLayout">
-              <div className="conferenceMainBlock">
-                <div className="mainVideoCard">
-                  <div className="speakerTag">Professeure • {activeLive?.teacher || "Sophie Martin"}</div>
-                  <div className="talkingName">{activeLive?.teacher || "Sophie Martin"}</div>
-                  <div className="conferenceControls">
-                    <button
-                      type="button"
-                      className={`controlButton ${micOn ? "active" : "muted"}`}
-                      aria-label={micOn ? "Mute" : "Unmute"}
-                      onClick={() => {
-                        setMicOn((v) => !v);
-                        notify(micOn ? "Micro coupé" : "Micro réactivé");
-                      }}
-                    >
-                      {micOn ? "🎤" : "🔇"}
-                    </button>
-                    <button
-                      type="button"
-                      className={`controlButton ${cameraOn ? "active" : "muted"}`}
-                      aria-label={cameraOn ? "Désactiver caméra" : "Réactiver caméra"}
-                      onClick={() => {
-                        setCameraOn((v) => !v);
-                        notify(cameraOn ? "Caméra désactivée" : "Caméra activée");
-                      }}
-                    >
-                      {cameraOn ? "📷" : "🚫"}
-                    </button>
-                    <button
-                      type="button"
-                      className="controlButton exit"
-                      aria-label="Quitter"
-                      onClick={leaveLiveRoom}
-                    >
-                      ✕
-                    </button>
-                  </div>
+          <h1>{page === "live-room" ? "Espace LIVE" : selected.title}</h1>
+          {page === "course" && (
+            <nav className="courseTabs" aria-label="Contenu du cours">
+              <button type="button" className={activeCourseTab === "learning" ? "active" : ""} onClick={() => setActiveCourseTab("learning")}>Parcours</button>
+              <button type="button" className={activeCourseTab === "documents" ? "active" : ""} onClick={() => setActiveCourseTab("documents")}>Documents</button>
+            </nav>
+          )}
+          {page === "course" && activeCourseTab === "documents" && (
+            <section className="courseDocumentsPage">
+              <header className="documentsHeading">
+                <div>
+                  <span className="liveInfoLabel">RESSOURCES PÉDAGOGIQUES</span>
+                  <h2>Documents · {selected.title}</h2>
+                  <p className="muted">Supports de cours à consulter ou télécharger, classés par parcours.</p>
                 </div>
+                <span className="documentCount">{courseDocuments.filter((document) => document.course_key === String(selected.id)).length} fichiers</span>
+              </header>
 
-                <div className="miniVideoGrid">
-                  {liveParticipants.map((name) => (
-                    <div className="miniVideo" key={name}>
-                      <span>{name}</span>
-                    </div>
-                  ))}
-                  {liveJoined && (
-                    <div className="miniVideo currentUser">
-                      <span>{user?.firstName || "Vous"}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <aside className="chatPanel">
-                <div className="chatHeader">
-                  <strong>Discussion</strong>
-                  <button className="chatToggle" type="button" onClick={() => setChatOpen((v) => !v)}>
-                    {chatOpen ? "−" : "+"}
-                  </button>
-                </div>
-                {chatOpen && (
-                  <>
-                    <div className="chatMessages">
-                      {liveMessages.map((m, index) => (
-                        <div className={`chatMessage ${m.user === "Vous" ? "mine" : ""}`} key={`${m.user}-${index}`}>
-                          <span className="chatUser">{m.user}</span>
-                          <p>{m.text}</p>
+              <section className="documentLibrary">
+                <h3>Fichiers à télécharger</h3>
+                {courseDocuments.filter((document) => document.course_key === String(selected.id)).length ? (
+                  <div className="documentList">
+                    {courseDocuments.filter((document) => document.course_key === String(selected.id)).map((document) => (
+                      <article className="documentRow" key={document.id}>
+                        <div className="documentFileIcon" aria-hidden="true">PDF</div>
+                        <div className="documentFileInfo">
+                          <strong>{document.title}</strong>
+                          <span>{document.file_name} · {(document.size_bytes / 1024 / 1024).toFixed(1)} Mo</span>
                         </div>
-                      ))}
-                    </div>
-                    <form
-                      className="chatComposer"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (!chatInput.trim()) return;
-                        liveMessages.push({ user: "Vous", text: chatInput.trim() });
-                        setChatInput("");
-                        notify("Message envoyé");
-                      }}
-                    >
-                      <input
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="Écrire au groupe..."
-                      />
-                      <button type="submit" className="btn primary">Envoyer</button>
-                    </form>
-                  </>
+                        <a className="btn secondary documentDownload" href={document.public_url} target="_blank" rel="noreferrer" download={document.file_name}>
+                          Télécharger
+                        </a>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="documentsEmpty">Aucun fichier n’a encore été ajouté à ce cours.</p>
                 )}
-              </aside>
+              </section>
 
-              <aside className="questionsPanel">
-                <div className="chatHeader">
-                  <strong>Questions</strong>
-                  <span className="panelPill">3</span>
-                </div>
-                <div className="questionsList">
-                  {liveQuestions.map((q, index) => (
-                    <div className="questionItem" key={`${q.user}-${index}`}>
-                      <div className="questionUser">{q.user}</div>
-                      <div>{q.text}</div>
-                    </div>
+              <section className="documentLibrary">
+                <h3>Fiches et sujets abordés</h3>
+                <div className="documentReferenceList">
+                  {selected.documents.map((document) => (
+                    <article className="documentReference" key={document.title}>
+                      <span>{document.type}</span>
+                      <div><strong>{document.title}</strong><p>{document.summary}</p></div>
+                    </article>
                   ))}
                 </div>
-                <div className="questionComposer">
-                  <input
-                    value={questionInput}
-                    onChange={(e) => setQuestionInput(e.target.value)}
-                    placeholder="Posez votre question..."
-                  />
-                  <button
-                    type="button"
-                    className="btn primary"
-                    onClick={() => {
-                      if (!questionInput.trim()) return;
-                      liveQuestions.unshift({ user: "Vous", text: questionInput.trim() });
-                      setQuestionInput("");
-                      notify("Question envoyée");
-                    }}
-                  >
-                    Envoyer
-                  </button>
-                </div>
-              </aside>
-            </div>
+              </section>
 
-            <div className="liveActions">
-              {!liveJoined ? (
-                <button
-                  className="btn primary"
-                  onClick={() => joinLiveSession()}
-                >
-                  Rejoindre le live
+              <section className="documentUploadSection">
+                <div>
+                  <span className="liveInfoLabel">GESTION PÉDAGOGIQUE</span>
+                  <h3>Ajouter un document</h3>
+                  <p className="muted">Les fichiers ajoutés seront disponibles au téléchargement pour les apprenants de ce cours.</p>
+                </div>
+                {documentStorageAvailable ? (
+                  <form className="documentUploadForm" onSubmit={async (event) => {
+                    event.preventDefault();
+                    setDocumentUploadError("");
+                    if (!documentAdminToken || !documentFile || !documentTitle.trim()) {
+                      setDocumentUploadError("Indiquez le titre, le fichier et le code de dépôt administrateur.");
+                      return;
+                    }
+                    const form = event.currentTarget;
+                    setDocumentUploading(true);
+                    try {
+                      const storageClient = createClient();
+                      if (!storageClient) throw new Error("Renseignez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY pour déposer un fichier.");
+                      const headers = {
+                        "content-type": "application/json",
+                        "x-course-documents-token": documentAdminToken,
+                      };
+                      const preparationResponse = await fetch("/api/course-documents", {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify({
+                          action: "begin",
+                          courseKey: String(selected.id),
+                          title: documentTitle.trim(),
+                          fileName: documentFile.name,
+                          sizeBytes: documentFile.size,
+                        }),
+                      });
+                      const preparation = await preparationResponse.json();
+                      if (!preparationResponse.ok) throw new Error(preparation.error || "Le dépôt n’a pas pu être préparé.");
+                      const { error: uploadError } = await storageClient.storage
+                        .from("course-documents")
+                        .uploadToSignedUrl(preparation.storagePath, preparation.uploadToken, documentFile, {
+                          contentType: preparation.mimeType,
+                          cacheControl: "3600",
+                        });
+                      if (uploadError) throw new Error("Supabase n’a pas accepté le transfert du fichier.");
+                      const completionResponse = await fetch("/api/course-documents", {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify({
+                          action: "complete",
+                          courseKey: String(selected.id),
+                          title: documentTitle.trim(),
+                          fileName: documentFile.name,
+                          sizeBytes: documentFile.size,
+                          mimeType: preparation.mimeType,
+                          storagePath: preparation.storagePath,
+                        }),
+                      });
+                      const result = await completionResponse.json();
+                      if (!completionResponse.ok) throw new Error(result.error || "Le document n’a pas pu être enregistré.");
+                      setCourseDocuments((documents) => [result.document, ...documents]);
+                      setDocumentTitle("");
+                      setDocumentFile(null);
+                      setDocumentAdminToken("");
+                      form.reset();
+                      notify("Document ajouté au cours");
+                    } catch (error) {
+                      setDocumentUploadError(error instanceof Error ? error.message : "Erreur lors du dépôt du document.");
+                    } finally {
+                      setDocumentUploading(false);
+                    }
+                  }}>
+                    <div className="field">
+                      <label htmlFor="course-document-title">Titre du document</label>
+                      <input id="course-document-title" value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} required maxLength={120} placeholder="Ex. Fiche de vocabulaire du module 1" />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="course-document-file">Fichier (PDF, Word, PowerPoint, Excel ou texte · 15 Mo maximum)</label>
+                      <input id="course-document-file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)} required />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="course-document-token">Code de dépôt administrateur</label>
+                      <input id="course-document-token" type="password" autoComplete="off" value={documentAdminToken} onChange={(event) => setDocumentAdminToken(event.target.value)} required />
+                    </div>
+                    {documentUploadError && <p className="documentUploadError" role="alert">{documentUploadError}</p>}
+                    <button type="submit" className="btn primary" disabled={documentUploading}>
+                      {documentUploading ? "Envoi en cours…" : "Ajouter le fichier"}
+                    </button>
+                  </form>
+                ) : (
+                  <p className="documentSetupNotice">Le stockage des documents n’est pas encore configuré. Appliquez la migration <code>002_course_documents.sql</code> dans Supabase et renseignez <code>SUPABASE_SERVICE_ROLE_KEY</code> ainsi que <code>COURSE_DOCUMENTS_ADMIN_TOKEN</code> dans les variables d’environnement du serveur.</p>
+                )}
+              </section>
+            </section>
+          )}
+          {page === "live-room" && (
+            <div className="livePanel liveRoomPage">
+              <div className="liveHeader">
+                <div>
+                  <span className="liveBadge">EN DIRECT</span>
+                  <h2>{activeLive?.title || "Session LIVE"}</h2>
+                </div>
+                <div className="liveMeta" aria-live="polite">
+                  <span className="liveDot" />
+                  {liveJoined ? "Connecté à la réunion" : "Connexion à la salle"}
+                </div>
+              </div>
+
+              <div className="liveInfoBar">
+                <div className="liveInfoItem">
+                  <span className="liveInfoLabel">Professeur</span>
+                  <strong>{activeLive?.teacher || "À confirmer"}</strong>
+                </div>
+                <div className="liveInfoItem">
+                  <span className="liveInfoLabel">Horaire</span>
+                  <strong>{activeLive?.date || "À programmer"}</strong>
+                </div>
+                <div className="liveInfoItem">
+                  <span className="liveInfoLabel">Plateforme</span>
+                  <strong>Jitsi Meet</strong>
+                </div>
+              </div>
+
+              <JitsiRoom
+                roomUrl={activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
+                displayName={user?.firstName || "Participant"}
+                onJoined={() => setLiveJoined(true)}
+                onReadyToClose={leaveLiveRoom}
+              />
+
+              <div className="liveActions">
+                <button type="button" className="btn secondary" onClick={leaveLiveRoom}>
+                  {liveJoined ? "Quitter la réunion" : "Annuler et revenir au calendrier"}
                 </button>
-              ) : (
-                <button
-                  className="btn secondary"
-                  onClick={leaveLiveRoom}
-                >
-                  Quitter le live
+                <button type="button" className="btn ghost" onClick={copyLiveLink}>
+                  Copier le lien
                 </button>
-              )}
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => {
-                  setChatOpen((v) => !v);
-                  notify(chatOpen ? "Chat masqué" : "Chat affiché");
-                }}
-              >
-                {chatOpen ? "Masquer le chat" : "Afficher le chat"}
-              </button>
-              <button type="button" className="btn ghost" onClick={copyLiveLink}>
-                Copier le lien
-              </button>
+              </div>
             </div>
-          </div>
-          {germanCurriculum ? (
+          )}
+          {page === "course" && activeCourseTab === "learning" && (germanCurriculum ? (
             <section className="courseCurriculumCard">
               <header className="curriculumHeading">
                 <div>
@@ -1412,7 +1440,7 @@ export function AppShell() {
                 Marquer comme terminée
               </button>
             </div>
-          )}
+          ))}
         </main>
       )}
       {page === "live" && (
@@ -1427,8 +1455,8 @@ export function AppShell() {
                 onClick={() => {
                   const live = liveSessions[0] ?? activeLive;
                   setActiveLive(live);
-                  setSelected(courses[0]);
-                  go("course");
+                  setSelected(courses.find((course) => course.language === live.course) ?? courses[0]);
+                  go("live-room");
                   openLiveRoom(live);
                   notify("Vous êtes maintenant dans le live");
                 }}

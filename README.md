@@ -16,8 +16,12 @@ Ouvrir http://localhost:3000. Sans variables externes, l'application fonctionne 
 
 1. Créer un projet Supabase.
 2. Exécuter `supabase/migrations/001_initial.sql` dans SQL Editor.
-3. Renseigner les variables Supabase dans `.env.local` et dans Vercel.
-4. Avant production, compléter les politiques RLS pour les rôles professeur, volontaire et administrateur.
+3. Exécuter `supabase/migrations/002_course_documents.sql` pour créer la bibliothèque de fichiers et le bucket `course-documents`.
+4. Renseigner les variables Supabase dans `.env.local` et dans Vercel.
+5. Générer un code administrateur long et aléatoire pour `COURSE_DOCUMENTS_ADMIN_TOKEN`. Cette variable reste côté serveur et n'est jamais préfixée par `NEXT_PUBLIC_`.
+6. Avant production, compléter les politiques RLS pour les rôles professeur, volontaire et administrateur.
+
+Les documents de cours publiés sont téléchargeables par les visiteurs. Le dépôt est limité à l'API serveur avec `SUPABASE_SERVICE_ROLE_KEY` et `COURSE_DOCUMENTS_ADMIN_TOKEN`; les accès d'écriture anonymes au bucket ne sont pas autorisés. Les fichiers acceptés sont PDF, Word, PowerPoint, Excel et TXT, jusqu'à 15 Mo.
 
 ## Stripe
 

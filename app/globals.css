@@ -265,6 +265,219 @@ select {
 .courseBody {
   padding: 18px;
 }
+.dashboardDestinations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+.dashboardDestination {
+  padding: 24px;
+  border: 1px solid #dfe7e7;
+  border-radius: 12px;
+  background: #fff;
+}
+.dashboardDestination h2 {
+  margin: 8px 0;
+  font-size: 21px;
+}
+.dashboardDestination p {
+  min-height: 48px;
+}
+.courseTabs {
+  display: flex;
+  gap: 4px;
+  margin: 18px 0 0;
+  padding: 4px;
+  width: fit-content;
+  border: 1px solid #e0e7e9;
+  border-radius: 9px;
+  background: #f4f7f7;
+}
+.courseTabs button {
+  min-width: 110px;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #4c5b62;
+  font-weight: 700;
+  cursor: pointer;
+}
+.courseTabs button.active {
+  background: #fff;
+  color: #176b60;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+.courseDocumentsPage {
+  margin-top: 18px;
+  padding: 24px;
+  border: 1px solid #e1e8e9;
+  border-radius: 12px;
+  background: #fff;
+}
+.documentsHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e8edef;
+}
+.documentsHeading h2 {
+  margin: 7px 0 4px;
+}
+.documentsHeading p {
+  margin: 0;
+}
+.documentCount {
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: #eff6f4;
+  color: #176b60;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.documentLibrary {
+  margin-top: 22px;
+}
+.documentLibrary > h3,
+.documentUploadSection h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.documentList {
+  display: grid;
+  border-top: 1px solid #e8edef;
+}
+.documentRow {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 4px;
+  border-bottom: 1px solid #e8edef;
+}
+.documentFileIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 42px;
+  border: 1px solid #d6e3e2;
+  border-radius: 6px;
+  background: #f2f7f6;
+  color: #176b60;
+  font-size: 10px;
+  font-weight: 850;
+}
+.documentFileInfo {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.documentFileInfo strong {
+  overflow-wrap: anywhere;
+}
+.documentFileInfo span {
+  color: #68767d;
+  font-size: 12px;
+}
+.documentDownload {
+  text-decoration: none;
+  white-space: nowrap;
+}
+.documentsEmpty {
+  padding: 18px;
+  border: 1px dashed #ccd8da;
+  border-radius: 8px;
+  color: #617078;
+  background: #f9fbfb;
+}
+.documentReferenceList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.documentReference {
+  display: grid;
+  grid-template-columns: 95px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e4eaeb;
+  border-radius: 8px;
+  background: #fbfcfc;
+}
+.documentReference > span {
+  color: #176b60;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.documentReference p {
+  margin: 5px 0 0;
+  color: #66747a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.documentUploadSection {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 26px;
+  margin-top: 28px;
+  padding: 22px;
+  border: 1px solid #dfe8e6;
+  border-radius: 10px;
+  background: #f7faf9;
+}
+.documentUploadSection > div > .liveInfoLabel {
+  display: block;
+  margin-bottom: 7px;
+}
+.documentUploadSection .muted {
+  margin: 0;
+  font-size: 13px;
+}
+.documentUploadForm .field {
+  margin: 0 0 14px;
+}
+.documentUploadForm .field label {
+  font-size: 13px;
+}
+.documentUploadForm input:not([type="file"]) {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #cdd9d9;
+  border-radius: 7px;
+  background: #fff;
+}
+.documentUploadForm input[type="file"] {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed #b9c9c8;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 13px;
+}
+.documentSetupNotice,
+.documentUploadError {
+  margin: 0;
+  padding: 13px 15px;
+  border: 1px solid #e5d9b6;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: #65552d;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.documentUploadError {
+  margin-bottom: 12px;
+  border-color: #eccbc4;
+  background: #fff7f5;
+  color: #8d4033;
+}
 .courseCurriculumCard {
   margin-top: 22px;
   padding: 26px;
@@ -646,6 +859,46 @@ select {
   border-radius: 24px;
   padding: 18px;
   box-shadow: 0 12px 28px rgba(23, 37, 84, 0.08);
+}
+.liveRoomPage {
+  margin-top: 18px;
+}
+.jitsiRoom {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #d8e0e2;
+  border-radius: 12px;
+  background: #101820;
+}
+.jitsiRoomFrame {
+  width: 100%;
+  height: min(76vh, 780px);
+  min-height: 520px;
+}
+.jitsiRoomFrame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.jitsiRoomFrame.hidden {
+  display: none;
+}
+.jitsiRoomMessage {
+  display: grid;
+  min-height: 220px;
+  justify-items: center;
+  align-content: center;
+  gap: 14px;
+  padding: 24px;
+  color: #334155;
+  text-align: center;
+  background: #f7f9fa;
+}
+.jitsiRoomMessage p {
+  max-width: 520px;
+  margin: 0;
+  line-height: 1.6;
 }
 .liveHeader {
   display: flex;
@@ -1050,6 +1303,11 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .documentUploadSection {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
   .courseLearningLayout {
     grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.4fr);
     gap: 16px;
@@ -1066,6 +1324,73 @@ select {
 @media (max-width: 600px) {
   .mainVideoCard {
     min-height: 280px;
+  }
+
+  .liveRoomPage {
+    padding: 14px;
+  }
+
+  .liveRoomPage .liveHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .liveRoomPage .liveInfoBar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .jitsiRoomFrame {
+    height: 68vh;
+    min-height: 460px;
+  }
+
+  .dashboardDestinations,
+  .documentReferenceList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboardDestination {
+    padding: 18px;
+  }
+
+  .dashboardDestination p {
+    min-height: 0;
+  }
+
+  .courseDocumentsPage {
+    padding: 17px 13px;
+  }
+
+  .documentsHeading {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .documentRow {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .documentDownload {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .documentReference {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .documentUploadSection {
+    padding: 16px 12px;
+  }
+
+  .courseTabs {
+    width: 100%;
+  }
+
+  .courseTabs button {
+    flex: 1;
   }
 
   .courseCurriculumCard {
