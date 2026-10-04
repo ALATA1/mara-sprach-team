@@ -542,7 +542,7 @@ export function AppShell() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Impossible d’envoyer votre demande.");
       form.reset();
-      setContactStatus({ type: "success", message: "Votre demande a bien été enregistrée. Nous vous recontacterons dès que possible." });
+      setContactStatus({ type: "success", message: "Votre demande a bien été envoyée. Nous vous recontacterons dès que possible." });
     } catch (error) {
       setContactStatus({
         type: "error",
@@ -906,14 +906,14 @@ export function AppShell() {
               {localizedText("À propos", "Über uns", "About")}
             </button>
             <div className="formationMenu" aria-label={localizedText("Sous-menus À propos", "Untermenü Über uns", "About submenu")}>
+              <button className={page === "pdg" ? "active" : ""} onClick={() => { setAboutMenuOpen(false); go("pdg"); }}>
+                DGP Mara
+              </button>
               <button className={page === "about" ? "active" : ""} onClick={() => { setAboutMenuOpen(false); go("about"); }}>
                 {localizedText("Qui sommes-nous ?", "Wer wir sind", "Who we are")}
               </button>
               <button className={page === "contact" ? "active" : ""} type="button" onClick={() => { setAboutMenuOpen(false); go("contact"); }}>
                 {localizedText("Contact", "Kontakt", "Contact")}
-              </button>
-              <button className={page === "pdg" ? "active" : ""} onClick={() => { setAboutMenuOpen(false); go("pdg"); }}>
-                PDG
               </button>
             </div>
           </div>
