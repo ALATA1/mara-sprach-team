@@ -277,6 +277,7 @@ export function AppShell() {
     [toast, setToast] = useState(""),
     [photoOpen, setPhotoOpen] = useState(false),
     [logoOpen, setLogoOpen] = useState(false),
+    [formationMenuOpen, setFormationMenuOpen] = useState(false),
     [liveJoined, setLiveJoined] = useState(false),
     [activeCourseTab, setActiveCourseTab] = useState<"learning" | "documents">("learning"),
     [courseDocuments, setCourseDocuments] = useState<UploadedCourseDocument[]>([]),
@@ -787,20 +788,50 @@ export function AppShell() {
             PDG
           </button>
           {user && (
-            <>
-              <button className={`btn ghost hideMobile ${page === "programme-a1" ? "active" : ""}`} onClick={() => go("programme-a1")}>
-                Programme A1
+            <div
+              className={`navDropdown ${formationMenuOpen ? "open" : ""}`}
+              onMouseEnter={() => setFormationMenuOpen(true)}
+              onMouseLeave={() => setFormationMenuOpen(false)}
+              onFocusCapture={() => setFormationMenuOpen(true)}
+              onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setFormationMenuOpen(false);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setFormationMenuOpen(false);
+                  event.currentTarget.querySelector<HTMLButtonElement>(".formationTrigger")?.focus();
+                }
+              }}
+            >
+              <button
+                type="button"
+                className={`btn ghost hideMobile formationTrigger ${["courses", "programme-a1", "programme-a2"].includes(page) ? "active" : ""}`}
+                aria-expanded={formationMenuOpen}
+                onClick={() => setFormationMenuOpen(true)}
+              >
+                Formation
               </button>
-              <button className={`btn ghost hideMobile ${page === "programme-a2" ? "active" : ""}`} onClick={() => go("programme-a2")}>
-                Programme A2
-              </button>
-            </>
+              <div className="formationMenu" aria-label="Sous-menus Formation">
+                {(paid || user.role === "teacher") && (
+                  <button className={page === "courses" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("courses"); }}>
+                    Cours
+                  </button>
+                )}
+                <button className={page === "programme-a1" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-a1"); }}>
+                  Programme A1
+                </button>
+                <button className={page === "programme-a2" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-a2"); }}>
+                  Programme A2
+                </button>
+              </div>
+            </div>
           )}
           {user ? (
             <>
               {(paid || user.role === "teacher") && (
                 <>
-                  <button className="btn ghost hideMobile" onClick={() => go("courses")}>Cours</button>
                   <button className="btn ghost hideMobile" onClick={() => go("live")}>LIVE</button>
                   <button className="btn ghost hideMobile" onClick={() => go("support")}>Accompagnement</button>
                 </>

@@ -76,6 +76,53 @@ select {
   background: #e8f3f0;
   color: #135e54;
 }
+.navDropdown {
+  position: relative;
+}
+.formationTrigger::after {
+  width: 7px;
+  height: 7px;
+  margin: 0 0 3px 9px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(45deg);
+}
+.formationMenu {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 6px);
+  left: 0;
+  display: none;
+  min-width: 180px;
+  padding: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
+}
+.navDropdown:hover .formationMenu,
+.navDropdown:focus-within .formationMenu,
+.navDropdown.open .formationMenu {
+  display: grid;
+}
+.formationMenu button {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #25343b;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+.formationMenu button:hover,
+.formationMenu button:focus-visible,
+.formationMenu button.active {
+  background: #e8f3f0;
+  color: #135e54;
+}
 .directorPage,
 .germanProgramPage {
   max-width: 1120px;
@@ -1940,6 +1987,11 @@ select {
   .nav .btn {
     padding: 10px 12px;
     font-size: 12px;
+  }
+
+  .formationMenu {
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .actions {
