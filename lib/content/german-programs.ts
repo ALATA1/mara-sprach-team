@@ -26,7 +26,7 @@ export type GermanQuiz = {
 
 export type GermanCurriculumItem = { type: "lesson" | "quiz"; id: number };
 export type GermanCurriculum = {
-  level: "A1" | "A2";
+  level: "A1" | "A2" | "B1";
   source: string;
   modules: { id: number; title: string; items: GermanCurriculumItem[] }[];
   lessons: GermanLesson[];
@@ -38,7 +38,7 @@ export type GermanProgramChapter = Omit<GermanLesson, "id"> & {
 };
 
 export type GermanProgram = {
-  level: "A1" | "A2";
+  level: "A1" | "A2" | "B1";
   source: string;
   title: string;
   description: string;
@@ -49,7 +49,7 @@ export type GermanProgram = {
 export const germanA1Program: GermanProgram = {
   level: "A1",
   source: "Schritte plus Neu – Kursbuch A1/1",
-  title: "Programme d’allemand A1",
+  title: "Niveau d’allemand A1",
   description: "Six chapitres pour acquérir les bases et commencer à communiquer dans les situations du quotidien.",
   chapters: [
     { title: "Guten Tag!", topics: ["Se présenter", "Nom, origine et langues", "Alphabet et épellation", "Premières questions simples"], grammar: ["Le verbe sein", "Questions en W-", "Phrases déclaratives"] },
@@ -65,7 +65,7 @@ export const germanA1Program: GermanProgram = {
 export const germanA2Program: GermanProgram = {
   level: "A2",
   source: "Schritte plus Neu – Arbeitsbuch A2/2",
-  title: "Programme d’allemand A2",
+  title: "Niveau d’allemand A2",
   description: "Six chapitres pour gagner en autonomie dans les achats, la santé, le travail, le logement, les loisirs et les voyages.",
   chapters: [
     { title: "Kleidung & Einkaufen", topics: ["Vêtements, tailles et couleurs", "Dialogues en magasin", "Retour ou échange d’un produit"], grammar: ["Terminaisons des adjectifs", "Comparatif"] },
@@ -76,6 +76,24 @@ export const germanA2Program: GermanProgram = {
     { title: "Reisen", topics: ["Réservations", "Informations touristiques"], grammar: ["Propositions relatives avec der, die et das"] },
   ],
   learningMaterials: ["Dialogues de compréhension et exercices de situation", "Fiches de vocabulaire par thème", "Mini-tests interactifs et corrections expliquées", "Exercices de lecture, formulaires et rédaction courte"],
+};
+
+export const germanB1Program: GermanProgram = {
+  level: "B1",
+  source: "Parcours pédagogique Mara-Sprach Team · repères CECRL B1",
+  title: "Niveau d’allemand B1",
+  description: "Huit séquences pour raconter ses expériences, expliquer son point de vue et agir avec plus d’autonomie dans la vie sociale et professionnelle.",
+  chapters: [
+    { title: "Erfahrungen und Lebensweg", topics: ["Raconter une expérience", "Présenter son parcours", "Organiser un récit"], grammar: ["Perfekt et Präteritum", "Connecteurs temporels", "Place du verbe"] },
+    { title: "Zusammenleben und Meinung", topics: ["Exprimer un accord ou un désaccord", "Argumenter avec respect", "Parler de règles communes"], grammar: ["obwohl et trotzdem", "weil et deshalb", "Ordre des propositions"] },
+    { title: "Ausbildung und Beruf", topics: ["Présenter ses compétences", "Répondre à une annonce", "Préparer un entretien"], grammar: ["um ... zu et damit", "Infinitif avec zu", "Propositions subordonnées"] },
+    { title: "Medien und Nachrichten", topics: ["Comprendre une information", "Distinguer fait et opinion", "Parler des médias"], grammar: ["Passif au présent", "Questions indirectes", "ob et mots interrogatifs"] },
+    { title: "Umwelt und Konsum", topics: ["Décrire un problème environnemental", "Comparer des habitudes", "Proposer des solutions"], grammar: ["Konjunktiv II de conseil", "damit et um ... zu", "Comparatifs de révision"] },
+    { title: "Gesundheit und Alltag", topics: ["Décrire un besoin de santé", "Demander conseil", "Expliquer une démarche"], grammar: ["Verbes avec préposition", "da- et wo- composés", "Questions indirectes"] },
+    { title: "Wohnen und Gesellschaft", topics: ["Décrire son quartier", "Parler de mobilité", "Présenter une initiative locale"], grammar: ["Relatives au datif", "Prépositions locales", "Connecteurs d’argumentation"] },
+    { title: "Pläne und Diskussion", topics: ["Présenter un projet", "Défendre une proposition", "Faire le bilan de ses acquis"], grammar: ["Konjunktiv II poli", "Futur et hypothèses", "Connecteurs pour structurer un avis"] },
+  ],
+  learningMaterials: ["Huit leçons avec dialogues prononcés en allemand", "Vocabulaire contextualisé et révision grammaticale", "Exercices de production personnelle", "Quiz corrigés avec score et suivi de progression"],
 };
 
 const a1Chapters: GermanProgramChapter[] = [
@@ -228,8 +246,108 @@ const a2Chapters: GermanProgramChapter[] = [
   },
 ];
 
+const b1Chapters: GermanProgramChapter[] = [
+  {
+    title: "Chapitre 1 · Erfahrungen und Lebensweg",
+    duration: "35 min",
+    objectives: ["Raconter une expérience passée de façon structurée", "Présenter les étapes de son parcours", "Employer des connecteurs temporels"],
+    explanation: ["Pour raconter une expérience, situe d’abord le contexte, puis les événements et enfin leur résultat. À l’oral, le Perfekt est fréquent : « Ich habe ein Praktikum gemacht ». Le Präteritum apparaît surtout avec sein, haben et les verbes modaux : « Ich war in Berlin ».", "Des connecteurs comme zuerst, danach, während et schließlich rendent le récit plus clair. Dans une proposition introduite par während ou nachdem, le verbe conjugué se place à la fin ; le verbe de la proposition principale vient ensuite."],
+    vocabulary: [{ word: "die Erfahrung", meaning: "l’expérience", pronunciation: "èr-fa-roung" }, { word: "der Lebenslauf", meaning: "le parcours / CV", pronunciation: "lé-bens-laouf" }, { word: "zuerst", meaning: "d’abord", pronunciation: "tsou-èrst" }, { word: "schließlich", meaning: "finalement", pronunciation: "chlis-likh" }],
+    examples: [{ german: "Zuerst habe ich ein Praktikum gemacht, danach fand ich eine Stelle.", french: "D’abord, j’ai fait un stage, ensuite j’ai trouvé un poste.", note: "zuerst et danach ordonnent les événements." }, { german: "Während ich in Hamburg war, habe ich viel Deutsch gesprochen.", french: "Pendant que j’étais à Hambourg, j’ai beaucoup parlé allemand.", note: "Le verbe de la proposition en während est placé à la fin." }],
+    grammarSummary: ["Perfekt : auxiliaire haben/sein conjugué + participe passé en fin de proposition.", "Präteritum fréquent : ich war, ich hatte, ich konnte, ich musste.", "Connecteurs : zuerst, danach, während, schließlich."],
+    dialogue: [{ speaker: "A", german: "Wie war dein Praktikum in Köln?", french: "Comment s’est passé ton stage à Cologne ?" }, { speaker: "B", german: "Es war sehr interessant. Zuerst habe ich im Büro gearbeitet.", french: "C’était très intéressant. D’abord, j’ai travaillé au bureau." }, { speaker: "A", german: "Und was hast du danach gemacht?", french: "Et qu’as-tu fait ensuite ?" }, { speaker: "B", german: "Danach habe ich ein eigenes Projekt vorbereitet.", french: "Ensuite, j’ai préparé un projet personnel." }],
+    portfolioTask: "Raconte en six phrases une expérience de travail, d’étude ou de vie quotidienne en utilisant au moins trois connecteurs temporels.",
+    quiz: { mode: "single", question: "Complète : Während ich in Berlin ___, habe ich viele Museen besucht.", options: ["war", "bin", "gewesen"], answers: ["war"], explanation: "Le récit est au passé et während introduit une subordonnée ; war est le Präteritum de sein et se place à la fin.", audioPrompt: "Während ich in Berlin war, habe ich viele Museen besucht." },
+  },
+  {
+    title: "Chapitre 2 · Zusammenleben und Meinung",
+    duration: "35 min",
+    objectives: ["Exprimer et justifier un avis", "Nuancer un désaccord", "Relier deux idées opposées"],
+    explanation: ["Pour donner un avis, utilise « Ich bin der Meinung, dass… » ou « Meiner Ansicht nach… ». Ajoute une raison, un exemple ou une conséquence afin que ton interlocuteur comprenne ton point de vue.", "obwohl introduit une concession et place le verbe à la fin : « Obwohl es regnet, gehen wir spazieren. » trotzdem relie deux propositions principales et garde le verbe en deuxième position : « Es regnet. Trotzdem gehen wir spazieren. »"],
+    vocabulary: [{ word: "die Meinung", meaning: "l’avis", pronunciation: "maï-noung" }, { word: "zustimmen", meaning: "être d’accord", pronunciation: "tsou-chtim-men" }, { word: "der Vorschlag", meaning: "la proposition", pronunciation: "for-chlak" }, { word: "obwohl", meaning: "bien que", pronunciation: "op-vol" }],
+    examples: [{ german: "Obwohl die Miete hoch ist, wohnen viele gern hier.", french: "Bien que le loyer soit élevé, beaucoup aiment vivre ici.", note: "Le verbe ist termine la proposition en obwohl." }, { german: "Ich verstehe deinen Punkt. Trotzdem sehe ich das anders.", french: "Je comprends ton point de vue. Malgré tout, je vois les choses autrement.", note: "trotzdem est suivi du verbe conjugué en deuxième position." }],
+    grammarSummary: ["obwohl + sujet + compléments + verbe conjugué à la fin.", "trotzdem + verbe conjugué + sujet + compléments.", "Formules : Ich bin der Meinung, dass… / Ich stimme dir teilweise zu."],
+    dialogue: [{ speaker: "A", german: "Soll die Straße im Zentrum autofrei werden?", french: "La rue du centre devrait-elle devenir piétonne ?" }, { speaker: "B", german: "Ich finde die Idee gut, obwohl manche Geschäfte dagegen sind.", french: "Je trouve l’idée bonne, bien que certains commerces soient contre." }, { speaker: "A", german: "Die Busse sind dort aber schon sehr voll.", french: "Mais les bus y sont déjà très pleins." }, { speaker: "B", german: "Das stimmt. Trotzdem könnten wir zuerst einen Versuch machen.", french: "C’est vrai. Malgré tout, nous pourrions d’abord faire un essai." }],
+    portfolioTask: "Écris un avis de cinq phrases sur une règle de vie collective ; ajoute un argument avec obwohl et une proposition avec trotzdem.",
+    quiz: { mode: "single", question: "Complète : Obwohl der Weg weit ist, ___ sie jeden Tag zu Fuß.", options: ["geht", "sie geht", "gehen"], answers: ["geht"], explanation: "Dans la proposition introduite par obwohl, le verbe conjugué se place à la fin.", audioPrompt: "Obwohl der Weg weit ist, geht sie jeden Tag zu Fuß." },
+  },
+  {
+    title: "Chapitre 3 · Ausbildung und Beruf",
+    duration: "35 min",
+    objectives: ["Présenter ses compétences et son expérience", "Comprendre une annonce de formation ou d’emploi", "Formuler un objectif professionnel"],
+    explanation: ["Une présentation professionnelle efficace cite une compétence, un exemple et un objectif. Pour expliquer le but d’une action avec le même sujet, emploie um … zu : « Ich lerne Deutsch, um in einem Team zu arbeiten. » Avec deux sujets différents, utilise damit.", "Après certains verbes et expressions, zu accompagne l’infinitif : « Ich habe vor, eine Weiterbildung zu machen. » Pour un verbe séparable, zu s’insère entre le préfixe et le verbe : « anzufangen »."],
+    vocabulary: [{ word: "die Weiterbildung", meaning: "la formation continue", pronunciation: "vaï-ter-bil-doung" }, { word: "die Fähigkeit", meaning: "la compétence", pronunciation: "fé-khikh-kaït" }, { word: "sich bewerben", meaning: "postuler", pronunciation: "zikh be-vèr-ben" }, { word: "das Vorstellungsgespräch", meaning: "l’entretien d’embauche", pronunciation: "for-chtèl-loungs-gue-chprèkh" }],
+    examples: [{ german: "Ich mache einen Deutschkurs, um mich besser bewerben zu können.", french: "Je suis un cours d’allemand pour pouvoir mieux postuler.", note: "um … zu exprime un objectif avec le même sujet." }, { german: "Die Firma bietet Kurse an, damit die Mitarbeitenden sich weiterbilden.", french: "L’entreprise propose des cours afin que les salariés puissent continuer à se former.", note: "damit est utilisé ici parce que les sujets des propositions diffèrent." }],
+    grammarSummary: ["um … zu + infinitif : objectif lorsque le sujet est identique.", "damit + proposition avec verbe à la fin : sujets identiques ou différents.", "Verbe séparable + zu : anzufangen, sich vorzubereiten."],
+    dialogue: [{ speaker: "Recruteuse", german: "Warum möchten Sie bei uns arbeiten?", french: "Pourquoi souhaitez-vous travailler chez nous ?" }, { speaker: "Candidat", german: "Ich möchte meine Erfahrung im Kundenservice einbringen.", french: "Je souhaite mettre à profit mon expérience du service client." }, { speaker: "Recruteuse", german: "Was möchten Sie noch lernen?", french: "Qu’aimeriez-vous encore apprendre ?" }, { speaker: "Candidat", german: "Ich plane, eine Weiterbildung im Projektmanagement zu machen.", french: "Je prévois de suivre une formation en gestion de projet." }],
+    portfolioTask: "Rédige une courte présentation de candidature avec deux compétences, un exemple et une phrase d’objectif utilisant um … zu.",
+    quiz: { mode: "single", question: "Complète : Sie besucht einen Kurs, ___ ihre Chancen zu verbessern.", options: ["um", "damit", "obwohl"], answers: ["um"], explanation: "Le même sujet (sie) réalise les deux actions ; la structure correcte est um … zu.", audioPrompt: "Sie besucht einen Kurs, um ihre Chancen zu verbessern." },
+  },
+  {
+    title: "Chapitre 4 · Medien und Nachrichten",
+    duration: "35 min",
+    objectives: ["Résumer une information", "Distinguer un fait d’un commentaire", "Rapporter une question indirectement"],
+    explanation: ["Pour résumer une nouvelle, indique le sujet, l’information principale et sa source. Des expressions comme « Der Bericht handelt von… » ou « Laut der Nachricht… » aident à attribuer l’information sans la présenter comme une certitude personnelle.", "Au présent, le passif se forme avec werden conjugué et le participe passé : « Die Straße wird gesperrt. » Une question indirecte devient une subordonnée : « Können Sie mir sagen, wann der Zug fährt? » Le verbe conjugué se place à la fin."],
+    vocabulary: [{ word: "die Meldung", meaning: "l’information brève", pronunciation: "mèl-doung" }, { word: "die Quelle", meaning: "la source", pronunciation: "kvèl-leu" }, { word: "berichten über", meaning: "rendre compte de", pronunciation: "be-rikh-ten u-ber" }, { word: "zuverlässig", meaning: "fiable", pronunciation: "tsou-fèr-lè-sikh" }],
+    examples: [{ german: "Die neue Brücke wird im Sommer eröffnet.", french: "Le nouveau pont sera inauguré en été.", note: "Passif présent : wird + participe passé eröffnet." }, { german: "Weißt du, wann die Sendung beginnt?", french: "Sais-tu quand l’émission commence ?", note: "Dans la question indirecte, beginnt termine la subordonnée." }],
+    grammarSummary: ["Passif présent : werden conjugué + participe passé.", "Question indirecte avec mot interrogatif : mot + sujet + compléments + verbe final.", "ob introduit une question indirecte sans mot interrogatif."],
+    dialogue: [{ speaker: "A", german: "Hast du die Meldung über den Bahnhof gelesen?", french: "As-tu lu l’information sur la gare ?" }, { speaker: "B", german: "Ja. Der Eingang wird nächste Woche repariert.", french: "Oui. L’entrée sera réparée la semaine prochaine." }, { speaker: "A", german: "Weißt du, ob die Busse dort halten?", french: "Sais-tu si les bus s’arrêtent là-bas ?" }, { speaker: "B", german: "Das steht noch nicht in der Nachricht.", french: "Ce n’est pas encore indiqué dans l’information." }],
+    portfolioTask: "Résume une information locale en quatre phrases en indiquant sa source et en utilisant une question indirecte.",
+    quiz: { mode: "single", question: "Choisis la question indirecte correcte : Weißt du, ___?", options: ["wann der Zug fährt", "wann fährt der Zug", "der Zug wann fährt"], answers: ["wann der Zug fährt"], explanation: "Dans une question indirecte, le verbe conjugué se place à la fin de la proposition.", audioPrompt: "Weißt du, wann der Zug fährt?" },
+  },
+  {
+    title: "Chapitre 5 · Umwelt und Konsum",
+    duration: "35 min",
+    objectives: ["Décrire une habitude de consommation", "Comparer des solutions écologiques", "Proposer une action réalisable"],
+    explanation: ["Pour parler de l’environnement, décris d’abord un problème concret puis compare les solutions selon leur coût, leur facilité et leur effet. « Man sollte… » permet de formuler un conseil ; « Wir könnten… » présente une possibilité de façon moins catégorique.", "damit et um … zu expriment un objectif. « Wir fahren mit dem Bus, um Energie zu sparen. » Utilise le Konjunktiv II de können ou sollen pour proposer une action avec tact : « Wir könnten öfter teilen. »"],
+    vocabulary: [{ word: "der Verbrauch", meaning: "la consommation", pronunciation: "fèr-braoukh" }, { word: "wiederverwenden", meaning: "réutiliser", pronunciation: "vi-der-fèr-vèn-den" }, { word: "die Verpackung", meaning: "l’emballage", pronunciation: "fèr-pa-koung" }, { word: "die Maßnahme", meaning: "la mesure / action", pronunciation: "mass-na-meu" }],
+    examples: [{ german: "Wir könnten Mehrwegflaschen benutzen, um weniger Müll zu produzieren.", french: "Nous pourrions utiliser des bouteilles réutilisables pour produire moins de déchets.", note: "könnten formule une proposition ; um … zu annonce son objectif." }, { german: "Man sollte Produkte länger verwenden.", french: "On devrait utiliser les produits plus longtemps.", note: "sollte exprime un conseil général." }],
+    grammarSummary: ["Konjunktiv II : könnte/könnten pour proposer, sollte/sollten pour conseiller.", "um … zu + infinitif indique le but d’une action.", "Comparaison : praktischer als, genauso wichtig wie."],
+    dialogue: [{ speaker: "A", german: "Wie können wir im Büro weniger Papier verbrauchen?", french: "Comment pouvons-nous consommer moins de papier au bureau ?" }, { speaker: "B", german: "Wir könnten doppelseitig drucken.", french: "Nous pourrions imprimer recto verso." }, { speaker: "A", german: "Das wäre einfach umzusetzen.", french: "Ce serait facile à mettre en place." }, { speaker: "B", german: "Ja, und wir könnten Dokumente öfter digital teilen.", french: "Oui, et nous pourrions partager plus souvent les documents sous forme numérique." }],
+    portfolioTask: "Propose trois mesures réalistes pour réduire les déchets à la maison ou au travail ; justifie chacune avec un objectif.",
+    quiz: { mode: "single", question: "Quelle phrase exprime une proposition polie ?", options: ["Wir könnten öfter den Bus nehmen.", "Wir nehmen gestern den Bus.", "Wir den Bus öfter nehmen."], answers: ["Wir könnten öfter den Bus nehmen."], explanation: "könnten est le Konjunktiv II de können et permet de formuler une proposition.", audioPrompt: "Wir könnten öfter den Bus nehmen." },
+  },
+  {
+    title: "Chapitre 6 · Gesundheit und Alltag",
+    duration: "35 min",
+    objectives: ["Expliquer un besoin ou une difficulté", "Poser une question précise à un service", "Employer des verbes avec préposition"],
+    explanation: ["Dans un rendez-vous médical ou administratif, décris le problème, sa durée et ce que tu demandes. Pour rester poli, commence par « Könnten Sie mir bitte erklären…? » ou « Ich würde gern wissen… ».", "Certains verbes se construisent avec une préposition fixe : warten auf, sich interessieren für, teilnehmen an. Pour remplacer une chose, emploie darauf, dafür ou daran. Dans la question, wo(r) + préposition donne worauf, wofür ou woran."],
+    vocabulary: [{ word: "teilnehmen an", meaning: "participer à", pronunciation: "taïl-né-men an" }, { word: "sich kümmern um", meaning: "s’occuper de", pronunciation: "zikh ku-mer-n oum" }, { word: "die Untersuchung", meaning: "l’examen médical", pronunciation: "oun-ter-zou-koung" }, { word: "worauf", meaning: "à quoi / sur quoi", pronunciation: "vo-raouf" }],
+    examples: [{ german: "Ich warte auf den Termin und bereite mich darauf vor.", french: "J’attends le rendez-vous et je m’y prépare.", note: "darauf reprend le complément introduit par auf." }, { german: "Wofür interessieren Sie sich? – Ich interessiere mich für Ernährung.", french: "À quoi vous intéressez-vous ? – Je m’intéresse à l’alimentation.", note: "wofür interroge sur un complément introduit par für." }],
+    grammarSummary: ["Apprends le verbe avec sa préposition : warten auf, teilnehmen an, sich interessieren für.", "Préposition + chose reprise : darauf, daran, dafür.", "Question sur une chose : wo(r) + préposition ; sur une personne : préposition + wen/wem."],
+    dialogue: [{ speaker: "Patient", german: "Ich würde gern wissen, wann die Untersuchung stattfindet.", french: "J’aimerais savoir quand l’examen aura lieu." }, { speaker: "Accueil", german: "Der Termin ist am Donnerstag um zehn Uhr.", french: "Le rendez-vous est jeudi à dix heures." }, { speaker: "Patient", german: "Muss ich mich darauf vorbereiten?", french: "Dois-je m’y préparer ?" }, { speaker: "Accueil", german: "Nein, Sie müssen nur Ihre Versichertenkarte mitbringen.", french: "Non, vous devez seulement apporter votre carte d’assurance." }],
+    portfolioTask: "Prépare une demande polie pour un rendez-vous de santé ou un service administratif, puis note trois questions utiles.",
+    quiz: { mode: "single", question: "Complète : Ich interessiere mich ___ einem Deutschkurs.", options: ["für", "an", "auf"], answers: ["für"], explanation: "La construction correcte est sich interessieren für etwas.", audioPrompt: "Ich interessiere mich für einen Deutschkurs." },
+  },
+  {
+    title: "Chapitre 7 · Wohnen und Gesellschaft",
+    duration: "35 min",
+    objectives: ["Décrire un quartier et ses services", "Présenter une initiative locale", "Utiliser une relative au datif"],
+    explanation: ["Pour décrire un quartier, associe un lieu, un service et une appréciation : « Es gibt einen Park, in dem… ». Pour présenter une initiative, explique qui y participe, ce qui est proposé et à qui cela sert.", "Dans une proposition relative, le pronom dépend du genre et du cas du nom remplacé. Au datif, on utilise dem au masculin/neutre, der au féminin et denen au pluriel : « die Nachbarin, der ich helfe ». Le verbe de la relative reste à la fin."],
+    vocabulary: [{ word: "die Nachbarschaft", meaning: "le voisinage", pronunciation: "nakh-bar-chaft" }, { word: "die Einrichtung", meaning: "la structure / établissement", pronunciation: "aïn-rikh-toung" }, { word: "ehrenamtlich", meaning: "bénévole", pronunciation: "é-ren-amt-likh" }, { word: "die Umgebung", meaning: "les environs", pronunciation: "oum-gé-boung" }],
+    examples: [{ german: "Das ist die Nachbarin, der ich beim Einkaufen helfe.", french: "C’est la voisine que j’aide pour les courses.", note: "der est au datif féminin après helfen." }, { german: "Wir besuchen ein Zentrum, in dem es Sprachkurse gibt.", french: "Nous visitons un centre où il y a des cours de langue.", note: "in dem reprend Zentrum et exprime le lieu." }],
+    grammarSummary: ["Relatif au datif : dem (masculin/neutre), der (féminin), denen (pluriel).", "helfen + datif : der Nachbarin helfen.", "Le verbe conjugué termine la proposition relative."],
+    dialogue: [{ speaker: "A", german: "Gibt es in deinem Viertel einen Treffpunkt?", french: "Y a-t-il un lieu de rencontre dans ton quartier ?" }, { speaker: "B", german: "Ja, es gibt ein Zentrum, in dem man Deutsch üben kann.", french: "Oui, il y a un centre où l’on peut pratiquer l’allemand." }, { speaker: "A", german: "Wer organisiert die Gespräche?", french: "Qui organise les conversations ?" }, { speaker: "B", german: "Freiwillige, denen die Nachbarschaft wichtig ist.", french: "Des bénévoles à qui le voisinage tient à cœur." }],
+    portfolioTask: "Décris un lieu utile de ton quartier avec deux propositions relatives, dont une au datif.",
+    quiz: { mode: "single", question: "Complète : Das ist der Kollege, ___ ich bei der Arbeit helfe.", options: ["den", "dem", "der"], answers: ["dem"], explanation: "helfen se construit avec le datif ; le relatif masculin au datif est dem.", audioPrompt: "Das ist der Kollege, dem ich bei der Arbeit helfe." },
+  },
+  {
+    title: "Chapitre 8 · Pläne und Diskussion",
+    duration: "35 min",
+    objectives: ["Présenter un projet et ses étapes", "Défendre une proposition avec des arguments", "Faire le bilan de sa progression"],
+    explanation: ["Pour présenter un projet, formule d’abord l’objectif, puis les étapes, les personnes concernées et le résultat attendu. Utilise erstens, außerdem, deshalb et zum Schluss pour guider ton auditoire.", "Le Konjunktiv II permet de formuler une demande polie ou une hypothèse : « Ich würde gern… », « Wir könnten… ». Pour rapporter une condition possible, utilise wenn avec le verbe à la fin : « Wenn wir mehr Zeit hätten, würden wir… »"],
+    vocabulary: [{ word: "das Ziel", meaning: "l’objectif", pronunciation: "tsi:l" }, { word: "der Vorteil", meaning: "l’avantage", pronunciation: "for-taïl" }, { word: "die Voraussetzung", meaning: "la condition préalable", pronunciation: "for-aous-zèt-tsoung" }, { word: "umsetzen", meaning: "mettre en œuvre", pronunciation: "oum-zèt-tsen" }],
+    examples: [{ german: "Wenn wir früher anfangen würden, könnten alle teilnehmen.", french: "Si nous commencions plus tôt, tout le monde pourrait participer.", note: "La proposition en wenn place würden à la fin ; könnten ouvre la principale." }, { german: "Ich würde vorschlagen, dass wir zuerst einen Termin vereinbaren.", french: "Je proposerais que nous fixions d’abord une date.", note: "Formule polie suivie d’une proposition en dass." }],
+    grammarSummary: ["Konjunktiv II poli : ich würde, wir könnten, man sollte.", "wenn + sujet + compléments + verbe à la fin.", "Connecteurs : erstens, außerdem, deshalb, zum Schluss."],
+    dialogue: [{ speaker: "A", german: "Wie können wir einen Sprachtreff organisieren?", french: "Comment pouvons-nous organiser une rencontre linguistique ?" }, { speaker: "B", german: "Ich würde vorschlagen, dass wir uns jeden Mittwoch treffen.", french: "Je proposerais que nous nous retrouvions chaque mercredi." }, { speaker: "A", german: "Das wäre gut. Wenn wir einen Raum finden, könnten mehr Leute kommen.", french: "Ce serait bien. Si nous trouvions une salle, plus de personnes pourraient venir." }, { speaker: "B", german: "Dann frage ich zuerst im Nachbarschaftszentrum nach.", french: "Alors je vais d’abord me renseigner au centre de quartier." }],
+    portfolioTask: "Présente un projet en une minute : objectif, trois étapes, avantage principal et une condition avec wenn.",
+    quiz: { mode: "single", question: "Quelle formule est la plus polie pour proposer une idée ?", options: ["Ich würde vorschlagen, dass wir später anfangen.", "Wir anfangen später.", "Ich schlage gestern vor."], answers: ["Ich würde vorschlagen, dass wir später anfangen."], explanation: "Ich würde vorschlagen est une formule polie au Konjunktiv II ; le verbe de la proposition en dass vient à la fin.", audioPrompt: "Ich würde vorschlagen, dass wir später anfangen." },
+  },
+];
+
 export const germanA1Curriculum = createCurriculum(germanA1Program, a1Chapters);
 export const germanA2Curriculum = createCurriculum(germanA2Program, a2Chapters);
+export const germanB1Curriculum = createCurriculum(germanB1Program, b1Chapters);
 
 function createCurriculum(program: GermanProgram, chapters: GermanProgramChapter[]): GermanCurriculum {
   const lessons = chapters.map((chapter, index) => ({

@@ -12,6 +12,8 @@ import {
   germanA1Program,
   germanA2Curriculum,
   germanA2Program,
+  germanB1Curriculum,
+  germanB1Program,
   type GermanCurriculum,
   type GermanProgram,
 } from "@/lib/content/german-programs";
@@ -258,6 +260,22 @@ const courses: Course[] = [
       { question: "Complétez : Ich habe ein Zimmer, ___ sehr ruhig ist.", options: ["der", "die", "das"], answer: "das", explanation: "Zimmer est neutre : le pronom relatif au nominatif est das." },
     ],
     curriculum: germanA2Curriculum,
+  },
+  {
+    id: 5,
+    language: "Allemand",
+    level: "B1",
+    title: "Allemand indépendant – Niveau B1",
+    progress: 0,
+    lessons: germanB1Curriculum.lessons.length,
+    color: "#28734a",
+    documents: [
+      { title: "Fiches de vocabulaire B1", type: "Vocabulaire", summary: "Expériences, vie collective, emploi, médias, environnement, santé et société." },
+      { title: "Récapitulatif de grammaire B1", type: "Grammaire", summary: "Récit au passé, argumentation, infinitif avec zu, passif, Konjunktiv II et relatives au datif." },
+      { title: "Portfolio B1", type: "Portfolio", summary: "Productions personnelles et tâches de communication des huit chapitres." },
+    ],
+    quiz: [],
+    curriculum: germanB1Curriculum,
   },
 ];
 export function AppShell() {
@@ -807,7 +825,7 @@ export function AppShell() {
             >
               <button
                 type="button"
-                className={`btn ghost hideMobile formationTrigger ${["courses", "programme-a1", "programme-a2"].includes(page) ? "active" : ""}`}
+                className={`btn ghost hideMobile formationTrigger ${["courses", "programme-a1", "programme-a2", "programme-b1"].includes(page) ? "active" : ""}`}
                 aria-expanded={formationMenuOpen}
                 onClick={() => setFormationMenuOpen(true)}
               >
@@ -820,10 +838,13 @@ export function AppShell() {
                   </button>
                 )}
                 <button className={page === "programme-a1" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-a1"); }}>
-                  Programme A1
+                  Niveau A1
                 </button>
                 <button className={page === "programme-a2" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-a2"); }}>
-                  Programme A2
+                  Niveau A2
+                </button>
+                <button className={page === "programme-b1" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-b1"); }}>
+                  Niveau B1
                 </button>
               </div>
             </div>
@@ -1218,8 +1239,8 @@ export function AppShell() {
           </article>
         </main>
       )}
-      {(page === "programme-a1" || page === "programme-a2") && (() => {
-        const program: GermanProgram = page === "programme-a1" ? germanA1Program : germanA2Program;
+      {(page === "programme-a1" || page === "programme-a2" || page === "programme-b1") && (() => {
+        const program: GermanProgram = page === "programme-a1" ? germanA1Program : page === "programme-a2" ? germanA2Program : germanB1Program;
         return (
           <main className="shell germanProgramPage">
             <header className={`programHero programHero${program.level}`}>
@@ -1796,7 +1817,7 @@ export function AppShell() {
                           </button>
                           {germanQuizResults[activeGermanQuiz.id] !== undefined && (
                             <strong className={`quizResult ${germanQuizResults[activeGermanQuiz.id] ? "success" : "retry"}`} role="status">
-                              {germanQuizResults[activeGermanQuiz.id] ? "Bonne réponse" : "À revoir"}
+                              {germanQuizResults[activeGermanQuiz.id] ? "Score : 100 % · Bonne réponse" : "Score : 0 % · À revoir"}
                             </strong>
                           )}
                         </div>
