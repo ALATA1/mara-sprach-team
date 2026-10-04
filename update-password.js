@@ -20,9 +20,9 @@ const TARGETS = {
 }
 
 const ACCOUNTS = [
-  { email: 'ibrahima.alata@conserto.pro', label: 'Admin' },
-  { email: 'ibrahima.alata@gmail.com', label: 'Enseignant' },
-  { email: 'celidoura@gmail.com', label: 'Etudiant' },
+  { email: 'ibrahima.alata@conserto.pro', label: 'Admin', firstName: 'Ibrahima', lastName: 'Alata', role: 'admin', membershipStatus: 'pending', amountCents: 1000 },
+  { email: 'ibrahima.alata@gmail.com', label: 'Enseignant', firstName: 'Ibrahima', lastName: 'Alata', role: 'teacher', membershipStatus: 'pending', amountCents: 1000 },
+  { email: 'celidoura@gmail.com', label: 'Etudiant', firstName: 'Celidoura', lastName: '', role: 'beneficiary', membershipStatus: 'active', amountCents: 0 },
 ]
 
 loadEnvConfig(process.cwd())
@@ -87,6 +87,7 @@ function askMasked(question) {
 async function main() {
   const isProduction = process.argv.includes('--production')
   const updateAll = process.argv.includes('--all')
+  const createMissing = process.argv.includes('--create-missing')
   const target = isProduction ? TARGETS.production : TARGETS.staging
   const projectUrl = process.env[target.urlEnv]
   const adminKey = process.env[target.keyEnv] ?? process.env[target.keyEnv.toUpperCase()]
@@ -97,8 +98,11 @@ async function main() {
   if (!projectUrl.includes(target.ref)) {
     throw new Error(`Arrêt : l’URL ne correspond pas au projet ${target.label}. Aucun compte n’a été modifié.`)
   }
-  if (isProduction && !updateAll) {
-    throw new Error('Pour éviter toute ambiguïté, le mode production exige les options --production --all.')
+  if (createMissing && !isProduction) {
+    throw new Error('L’option --create-missing est réservée à la production.')
+  }
+  if (isProduction && (!updateAll || !createMissing)) {
+    throw new Error('Pour créer les comptes de production, utilise --production --all --create-missing.')
   }
 
   const supabase = createClient(projectUrl, adminKey, {
@@ -129,8 +133,16 @@ async function main() {
     user: usersByEmail.get(account.email),
   }))
   const missingEmails = selectedUsers.filter(({ user }) => !user).map(({ account }) => account.email)
-  if (missingEmails.length > 0) {
+  if (missingEmails.length > 0 && !createMissing) {
     throw new Error(`Compte(s) absent(s) sur ${target.label} : ${missingEmails.join(', ')}. Aucun mot de passe n’a été modifié.`)
+  }
+
+  if (createMissing) {
+    const { error: profilesError } = await supabase.from('profiles').select('id').limit(1)
+    const { error: membershipsError } = await supabase.from('memberships').select('user_id').limit(1)
+    if (profilesError || membershipsError) {
+      throw new Error('Les tables profiles ou memberships ne sont pas accessibles sur la production.')
+    }
   }
 
   if (isProduction) {
@@ -145,12 +157,44 @@ async function main() {
     if (password.length < 8) throw new Error('Le mot de passe doit contenir au moins 8 caractères.')
     if (password !== confirmation) throw new Error('Les deux mots de passe ne correspondent pas.')
 
-    for (const { account, user } of selectedUsers) {
-      const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { password })
-      if (updateError) {
-        throw new Error(`Échec de la mise à jour pour ${account.email} sur ${target.label}.`)
+    for (const { account, user: existingUser } of selectedUsers) {
+      let user = existingUser
+      if (!user) {
+        const { data: created, error: createError } = await supabase.auth.admin.createUser({
+          email: account.email,
+          password,
+          email_confirm: true,
+          user_metadata: { first_name: account.firstName, last_name: account.lastName },
+        })
+        if (createError || !created.user) {
+          throw new Error(`Échec de la création de ${account.email} sur ${target.label}.`)
+        }
+        user = created.user
+      } else {
+        const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { password })
+        if (updateError) {
+          throw new Error(`Échec de la mise à jour du mot de passe pour ${account.email} sur ${target.label}.`)
+        }
       }
-      console.log(`Mot de passe mis à jour pour ${account.email} sur ${target.label}.`)
+
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: user.id,
+        first_name: account.firstName,
+        last_name: account.lastName,
+        role: account.role,
+      })
+      if (profileError) throw new Error(`Échec de l’attribution du rôle à ${account.email}.`)
+
+      const { error: membershipError } = await supabase.from('memberships').upsert({
+        user_id: user.id,
+        status: account.membershipStatus,
+        amount_cents: account.amountCents,
+        activated_at: account.membershipStatus === 'active' ? new Date().toISOString() : null,
+      }, { onConflict: 'user_id' })
+      if (membershipError) throw new Error(`Échec de l’adhésion de test pour ${account.email}.`)
+
+      const action = existingUser ? 'Compte mis à jour' : 'Compte créé'
+      console.log(`${action} : ${account.email} (${account.role}) sur ${target.label}.`)
     }
   } finally {
     password = null

@@ -1,0 +1,18 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Créer les comptes de test en production",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"update-password.js",
+				"--production",
+				"--all",
+				"--create-missing"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
