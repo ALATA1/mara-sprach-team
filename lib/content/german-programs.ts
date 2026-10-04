@@ -20,6 +20,8 @@ export type GermanQuiz = {
   options: string[];
   answers: string[];
   explanation: string;
+  audioPrompt?: string;
+  speakOptions?: boolean;
 };
 
 export type GermanCurriculumItem = { type: "lesson" | "quiz"; id: number };
@@ -87,7 +89,7 @@ const a1Chapters: GermanProgramChapter[] = [
     grammarSummary: ["sein : ich bin, du bist, er/sie/es ist, wir sind, ihr seid, sie/Sie sind.", "Question en W- : mot interrogatif + verbe + sujet ? Exemple : Woher kommst du?", "Phrase déclarative : le verbe conjugué est en deuxième position."],
     dialogue: [{ speaker: "A", german: "Guten Tag! Wie heißt du?", french: "Bonjour ! Comment t’appelles-tu ?" }, { speaker: "B", german: "Ich heiße Samira. Und du?", french: "Je m’appelle Samira. Et toi ?" }, { speaker: "A", german: "Ich bin Paul. Woher kommst du?", french: "Je suis Paul. Tu viens d’où ?" }, { speaker: "B", german: "Ich komme aus Marokko und spreche Arabisch und Französisch.", french: "Je viens du Maroc et je parle arabe et français." }],
     portfolioTask: "Enregistrez ou écrivez une présentation de quatre phrases : nom, origine, langues parlées et une question à poser à un camarade.",
-    quiz: { mode: "single", question: "Complétez : Ich ___ aus Guinea.", options: ["bist", "bin", "ist"], answers: ["bin"], explanation: "Avec le pronom ich, le verbe sein se conjugue bin : « Ich bin aus Guinea »." },
+    quiz: { mode: "single", question: "Complétez : Ich ___ aus Guinea.", options: ["bist", "bin", "ist"], answers: ["bin"], explanation: "Avec le pronom ich, le verbe sein se conjugue bin : « Ich bin aus Guinea »." , audioPrompt: "Ich bin aus Guinea." },
   },
   {
     title: "Chapitre 2 · Freunde, Kollegen und ich",
@@ -99,7 +101,7 @@ const a1Chapters: GermanProgramChapter[] = [
     grammarSummary: ["mein + nom masculin/neutre : mein Bruder, mein Kind.", "meine + nom féminin ou pluriel : meine Schwester, meine Freunde.", "La terminaison du verbe change avec le sujet : ich arbeite, du arbeitest, er arbeitet."],
     dialogue: [{ speaker: "A", german: "Wer ist das?", french: "Qui est-ce ?" }, { speaker: "B", german: "Das ist mein Kollege David. Er ist Ingenieur.", french: "C’est mon collègue David. Il est ingénieur." }, { speaker: "A", german: "Und wer ist die Frau dort?", french: "Et qui est la femme là-bas ?" }, { speaker: "B", german: "Das ist seine Frau. Sie arbeitet als Lehrerin.", french: "C’est sa femme. Elle travaille comme enseignante." }],
     portfolioTask: "Créez une fiche de présentation de deux personnes de votre entourage avec leur lien, leur profession et une qualité.",
-    quiz: { mode: "single", question: "Quelle phrase signifie « Voici ma sœur » ?", options: ["Das ist mein Schwester.", "Das ist meine Schwester.", "Das ist meine Bruder."], answers: ["Das ist meine Schwester."], explanation: "Schwester est féminin : on emploie meine. Bruder est masculin : mein Bruder." },
+    quiz: { mode: "single", question: "Quelle phrase signifie « Voici ma sœur » ?", options: ["Das ist mein Schwester.", "Das ist meine Schwester.", "Das ist meine Bruder."], answers: ["Das ist meine Schwester."], explanation: "Schwester est féminin : on emploie meine. Bruder est masculin : mein Bruder.", audioPrompt: "Das ist meine Schwester." },
   },
   {
     title: "Chapitre 3 · Essen und Trinken",
@@ -111,7 +113,7 @@ const a1Chapters: GermanProgramChapter[] = [
     grammarSummary: ["Accusatif masculin : der → den, ein → einen.", "Accusatif féminin : die/eine restent die/eine ; neutre : das/ein restent das/ein.", "haben : ich habe, du hast, er/sie/es hat, wir haben, ihr habt, sie/Sie haben."],
     dialogue: [{ speaker: "Service", german: "Guten Tag. Was möchten Sie?", french: "Bonjour. Que désirez-vous ?" }, { speaker: "Client", german: "Ich nehme einen Kaffee und zwei Brötchen, bitte.", french: "Je prends un café et deux petits pains, s’il vous plaît." }, { speaker: "Service", german: "Gern. Sonst noch etwas?", french: "Avec plaisir. Autre chose ?" }, { speaker: "Client", german: "Nein, danke. Was kostet das?", french: "Non, merci. Combien cela coûte-t-il ?" }],
     portfolioTask: "Rédigez une commande de café comprenant trois articles, une quantité et une question sur le prix.",
-    quiz: { mode: "single", question: "Complétez : Ich möchte ___ Kaffee.", options: ["ein", "einen", "eine"], answers: ["einen"], explanation: "Kaffee est masculin et complément direct : l’article devient einen à l’accusatif." },
+    quiz: { mode: "single", question: "Complétez : Ich möchte ___ Kaffee.", options: ["ein", "einen", "eine"], answers: ["einen"], explanation: "Kaffee est masculin et complément direct : l’article devient einen à l’accusatif.", audioPrompt: "Ich möchte einen Kaffee." },
   },
   {
     title: "Chapitre 4 · Alltag und Freizeit",
@@ -123,7 +125,7 @@ const a1Chapters: GermanProgramChapter[] = [
     grammarSummary: ["Verbe séparable : préfixe à la fin, par exemple aufstehen → Ich stehe früh auf.", "Le verbe conjugué reste en deuxième position dans la phrase déclarative.", "um + heure : um sieben Uhr."],
     dialogue: [{ speaker: "A", german: "Wann stehst du normalerweise auf?", french: "À quelle heure te lèves-tu normalement ?" }, { speaker: "B", german: "Ich stehe um halb sieben auf. Danach frühstücke ich.", french: "Je me lève à six heures et demie. Ensuite, je prends mon petit-déjeuner." }, { speaker: "A", german: "Was machst du am Abend?", french: "Que fais-tu le soir ?" }, { speaker: "B", german: "Ich lese gern oder treffe Freunde.", french: "J’aime lire ou retrouver des amis." }],
     portfolioTask: "Présentez votre journée en cinq étapes et ajoutez une activité que vous aimez faire pendant votre temps libre.",
-    quiz: { mode: "single", question: "Où place-t-on la particule dans « aufstehen » au présent ?", options: ["Avant le sujet", "À la fin de la phrase", "Juste après le sujet dans tous les cas"], answers: ["À la fin de la phrase"], explanation: "Dans une phrase principale, la particule séparable se place à la fin : Ich stehe um sieben Uhr auf." },
+    quiz: { mode: "single", question: "Où place-t-on la particule dans « aufstehen » au présent ?", options: ["Avant le sujet", "À la fin de la phrase", "Juste après le sujet dans tous les cas"], answers: ["À la fin de la phrase"], explanation: "Dans une phrase principale, la particule séparable se place à la fin : Ich stehe um sieben Uhr auf.", audioPrompt: "Ich stehe um sieben Uhr auf.", speakOptions: false },
   },
   {
     title: "Chapitre 5 · Kontakte",
@@ -135,7 +137,7 @@ const a1Chapters: GermanProgramChapter[] = [
     grammarSummary: ["können : ich kann, du kannst, er/sie/es kann, wir können, ihr könnt, sie/Sie können.", "Avec un modal, l’infinitif se place en fin : Ich kann morgen kommen.", "Impératif familier : Ruf mich an! / Kommt bitte pünktlich!"],
     dialogue: [{ speaker: "A", german: "Hallo, hier ist Nora. Hast du am Freitag Zeit?", french: "Salut, c’est Nora. Tu es libre vendredi ?" }, { speaker: "B", german: "Ja, ab sechs Uhr. Können wir zusammen essen?", french: "Oui, à partir de six heures. Est-ce qu’on peut dîner ensemble ?" }, { speaker: "A", german: "Gern. Ruf mich bitte an, wenn du da bist.", french: "Avec plaisir. Appelle-moi quand tu seras là." }, { speaker: "B", german: "Alles klar. Bis Freitag!", french: "Entendu. À vendredi !" }],
     portfolioTask: "Écrivez un e-mail court pour proposer un rendez-vous et préparez le message vocal que vous laisseriez en cas d’absence.",
-    quiz: { mode: "single", question: "Complétez : Ich kann morgen ___ .", options: ["komme", "kommen", "kommt"], answers: ["kommen"], explanation: "Après le modal kann, le verbe principal reste à l’infinitif en fin de phrase." },
+    quiz: { mode: "single", question: "Complétez : Ich kann morgen ___ .", options: ["komme", "kommen", "kommt"], answers: ["kommen"], explanation: "Après le modal kann, le verbe principal reste à l’infinitif en fin de phrase.", audioPrompt: "Ich kann morgen kommen." },
   },
   {
     title: "Chapitre 6 · Orientierung",
@@ -147,7 +149,7 @@ const a1Chapters: GermanProgramChapter[] = [
     grammarSummary: ["Position (où ?) : datif après les prépositions mixtes, par exemple in der Stadt.", "Direction (vers où ?) : accusatif, par exemple in die Stadt.", "Indications : geradeaus, links, rechts, an der Ecke."],
     dialogue: [{ speaker: "Voyageur", german: "Entschuldigung, wie komme ich zum Museum?", french: "Excusez-moi, comment aller au musée ?" }, { speaker: "Habitant", german: "Gehen Sie geradeaus bis zur Ampel und dann rechts.", french: "Allez tout droit jusqu’au feu puis à droite." }, { speaker: "Voyageur", german: "Ist das weit?", french: "Est-ce loin ?" }, { speaker: "Habitant", german: "Nein, das Museum ist neben dem Bahnhof.", french: "Non, le musée est à côté de la gare." }],
     portfolioTask: "Dessinez ou décrivez un itinéraire entre deux lieux de votre ville avec au moins trois étapes.",
-    quiz: { mode: "single", question: "Quelle phrase indique une position : « Je suis en ville » ?", options: ["Ich gehe in die Stadt.", "Ich bin in der Stadt.", "Ich fahre die Stadt."], answers: ["Ich bin in der Stadt."], explanation: "La phrase décrit une position (où ?) : le datif apparaît après in, ici in der Stadt." },
+    quiz: { mode: "single", question: "Quelle phrase indique une position : « Je suis en ville » ?", options: ["Ich gehe in die Stadt.", "Ich bin in der Stadt.", "Ich fahre die Stadt."], answers: ["Ich bin in der Stadt."], explanation: "La phrase décrit une position (où ?) : le datif apparaît après in, ici in der Stadt.", audioPrompt: "Ich bin in der Stadt." },
   },
 ];
 
@@ -162,7 +164,7 @@ const a2Chapters: GermanProgramChapter[] = [
     grammarSummary: ["Comparatif : adjectif + -er, souvent suivi de als : wärmer als (plus chaud que).", "L’adjectif épithète prend une terminaison : eine kleine Tasche, ein rotes Kleid.", "Pour un retour : Ich möchte das Produkt umtauschen / zurückgeben."],
     dialogue: [{ speaker: "Client", german: "Guten Tag. Ich suche eine warme Jacke.", french: "Bonjour. Je cherche une veste chaude." }, { speaker: "Vendeuse", german: "Welche Größe tragen Sie?", french: "Quelle taille portez-vous ?" }, { speaker: "Client", german: "Größe M. Kann ich diese Jacke anprobieren?", french: "Taille M. Puis-je essayer cette veste ?" }, { speaker: "Client", german: "Sie ist zu klein. Kann ich sie umtauschen?", french: "Elle est trop petite. Puis-je l’échanger ?" }],
     portfolioTask: "Comparez deux tenues et rédigez un dialogue de retour ou d’échange en magasin.",
-    quiz: { mode: "single", question: "Complétez : Die Jacke ist ___ als der Mantel.", options: ["warm", "wärmer", "am wärmsten"], answers: ["wärmer"], explanation: "On compare deux vêtements : le comparatif de warm est wärmer et il est suivi de als." },
+    quiz: { mode: "single", question: "Complétez : Die Jacke ist ___ als der Mantel.", options: ["warm", "wärmer", "am wärmsten"], answers: ["wärmer"], explanation: "On compare deux vêtements : le comparatif de warm est wärmer et il est suivi de als.", audioPrompt: "Die Jacke ist wärmer als der Mantel." },
   },
   {
     title: "Chapitre 8 · Gesundheit",
@@ -174,7 +176,7 @@ const a2Chapters: GermanProgramChapter[] = [
     grammarSummary: ["müssen : obligation ; sollen : conseil ou consigne rapportée.", "Verbe modal en deuxième position + infinitif à la fin : Ich muss mich ausruhen.", "Impératif poli : Nehmen Sie… / Trinken Sie…"],
     dialogue: [{ speaker: "Médecin", german: "Was fehlt Ihnen?", french: "Qu’est-ce qui vous arrive ?" }, { speaker: "Patient", german: "Ich habe seit zwei Tagen Halsschmerzen.", french: "J’ai mal à la gorge depuis deux jours." }, { speaker: "Médecin", german: "Sie sollen viel trinken und sich ausruhen.", french: "Vous devriez beaucoup boire et vous reposer." }, { speaker: "Patient", german: "Muss ich die Tabletten nehmen?", french: "Dois-je prendre les comprimés ?" }],
     portfolioTask: "Rédigez une fiche de symptômes puis trois conseils de santé avec sollen ou müssen.",
-    quiz: { mode: "single", question: "Complétez : Bei Fieber ___ Sie viel Wasser trinken.", options: ["sollen", "soll", "sollst"], answers: ["sollen"], explanation: "La formule s’adresse poliment à Sie : le verbe modal est sollen." },
+    quiz: { mode: "single", question: "Complétez : Bei Fieber ___ Sie viel Wasser trinken.", options: ["sollen", "soll", "sollst"], answers: ["sollen"], explanation: "La formule s’adresse poliment à Sie : le verbe modal est sollen.", audioPrompt: "Bei Fieber sollen Sie viel Wasser trinken." },
   },
   {
     title: "Chapitre 9 · Arbeit & Beruf",
@@ -186,7 +188,7 @@ const a2Chapters: GermanProgramChapter[] = [
     grammarSummary: ["weil + sujet + compléments + verbe conjugué à la fin.", "dass introduit une proposition complétive : Ich denke, dass…", "Si la subordonnée ouvre la phrase, le verbe principal suit immédiatement la virgule."],
     dialogue: [{ speaker: "Recruteur", german: "Warum interessieren Sie sich für diese Stelle?", french: "Pourquoi ce poste vous intéresse-t-il ?" }, { speaker: "Candidat", german: "Ich bewerbe mich, weil ich gern im Team arbeite.", french: "Je postule parce que j’aime travailler en équipe." }, { speaker: "Recruteur", german: "Haben Sie schon Berufserfahrung?", french: "Avez-vous déjà de l’expérience professionnelle ?" }, { speaker: "Candidat", german: "Ja, ich habe zwei Jahre in einer Werkstatt gearbeitet.", french: "Oui, j’ai travaillé deux ans dans un atelier." }],
     portfolioTask: "Préparez une mini-candidature avec un paragraphe de motivation contenant weil et une phrase avec dass.",
-    quiz: { mode: "single", question: "Où se place le verbe dans « weil ich heute ___ » ?", options: ["arbeite", "heute", "weil"], answers: ["arbeite"], explanation: "Dans la subordonnée en weil, le verbe conjugué se place à la fin : weil ich heute arbeite." },
+    quiz: { mode: "single", question: "Où se place le verbe dans « weil ich heute ___ » ?", options: ["arbeite", "heute", "weil"], answers: ["arbeite"], explanation: "Dans la subordonnée en weil, le verbe conjugué se place à la fin : weil ich heute arbeite.", audioPrompt: "Ich bewerbe mich, weil die Stelle interessant ist." },
   },
   {
     title: "Chapitre 10 · Wohnen",
@@ -198,7 +200,7 @@ const a2Chapters: GermanProgramChapter[] = [
     grammarSummary: ["Wo? (où, position) → datif : in der Küche, auf dem Tisch.", "Wohin? (vers où, déplacement) → accusatif : in die Küche, auf den Tisch.", "Appel poli : Könnten Sie bitte…?"],
     dialogue: [{ speaker: "Locataire", german: "Guten Tag. Die Heizung funktioniert nicht.", french: "Bonjour. Le chauffage ne fonctionne pas." }, { speaker: "Propriétaire", german: "Seit wann gibt es das Problem?", french: "Depuis quand y a-t-il ce problème ?" }, { speaker: "Locataire", german: "Seit gestern. Könnten Sie bitte jemanden schicken?", french: "Depuis hier. Pourriez-vous envoyer quelqu’un, s’il vous plaît ?" }, { speaker: "Propriétaire", german: "Ja, ich kümmere mich darum.", french: "Oui, je m’en occupe." }],
     portfolioTask: "Décrivez votre logement et rédigez un court message au propriétaire au sujet d’un problème concret.",
-    quiz: { mode: "single", question: "Complétez la position : Die Lampe hängt ___ der Küche.", options: ["in die", "in der", "in den"], answers: ["in der"], explanation: "La lampe est déjà située dans la cuisine (Wo?) : la position fixe demande le datif, in der Küche." },
+    quiz: { mode: "single", question: "Complétez la position : Die Lampe hängt ___ der Küche.", options: ["in die", "in der", "in den"], answers: ["in der"], explanation: "La lampe est déjà située dans la cuisine (Wo?) : la position fixe demande le datif, in der Küche.", audioPrompt: "Die Lampe hängt in der Küche." },
   },
   {
     title: "Chapitre 11 · Freizeit & Medien",
@@ -210,7 +212,7 @@ const a2Chapters: GermanProgramChapter[] = [
     grammarSummary: ["Perfekt : haben/sein conjugué + participe passé en fin de proposition.", "Futur I : werden conjugué + infinitif en fin de proposition.", "Invitation : Hast du Lust, mitzukommen? (Cela te dit de venir ?)"],
     dialogue: [{ speaker: "A", german: "Hast du am Samstag Lust auf Kino?", french: "Ça te dit d’aller au cinéma samedi ?" }, { speaker: "B", german: "Gern! Welchen Film wollen wir sehen?", french: "Avec plaisir ! Quel film voulons-nous voir ?" }, { speaker: "A", german: "Ich habe eine Komödie im Internet gesehen.", french: "J’ai vu une comédie sur Internet." }, { speaker: "B", german: "Super. Danach werden wir etwas essen.", french: "Super. Après, nous irons manger quelque chose." }],
     portfolioTask: "Écrivez une invitation à un événement, puis répondez en acceptant ou en proposant une autre date.",
-    quiz: { mode: "single", question: "Quelle phrase est au Perfekt ?", options: ["Ich sehe einen Film.", "Ich habe einen Film gesehen.", "Ich werde einen Film sehen."], answers: ["Ich habe einen Film gesehen."], explanation: "Le Perfekt utilise un auxiliaire conjugué suivi du participe passé en fin de phrase." },
+    quiz: { mode: "single", question: "Quelle phrase est au Perfekt ?", options: ["Ich sehe einen Film.", "Ich habe einen Film gesehen.", "Ich werde einen Film sehen."], answers: ["Ich habe einen Film gesehen."], explanation: "Le Perfekt utilise un auxiliaire conjugué suivi du participe passé en fin de phrase.", audioPrompt: "Ich habe einen Film gesehen." },
   },
   {
     title: "Chapitre 12 · Reisen",
@@ -222,7 +224,7 @@ const a2Chapters: GermanProgramChapter[] = [
     grammarSummary: ["Pronom relatif au nominatif : der (masculin), die (féminin), das (neutre), die (pluriel).", "Le verbe conjugué se place à la fin de la proposition relative.", "Réservation : Ich möchte ein Zimmer für zwei Nächte reservieren."],
     dialogue: [{ speaker: "Voyageur", german: "Guten Tag. Ich möchte ein Zimmer für zwei Nächte reservieren.", french: "Bonjour. Je voudrais réserver une chambre pour deux nuits." }, { speaker: "Accueil", german: "Ein Einzelzimmer oder ein Doppelzimmer?", french: "Une chambre simple ou double ?" }, { speaker: "Voyageur", german: "Ein Doppelzimmer. Haben Sie ein Zimmer, das ruhig ist?", french: "Une chambre double. Avez-vous une chambre qui est calme ?" }, { speaker: "Accueil", german: "Ja, wir haben ein Zimmer, das zum Innenhof liegt.", french: "Oui, nous avons une chambre qui donne sur la cour intérieure." }],
     portfolioTask: "Préparez une demande de réservation et une courte fiche touristique sur un lieu que vous aimeriez visiter.",
-    quiz: { mode: "single", question: "Complétez : Das ist das Hotel, ___ ich reserviert habe.", options: ["der", "die", "das"], answers: ["das"], explanation: "Hotel est neutre : le pronom relatif au nominatif est das. Le verbe de la relative reste en fin." },
+    quiz: { mode: "single", question: "Complétez : Das ist das Hotel, ___ ich reserviert habe.", options: ["der", "die", "das"], answers: ["das"], explanation: "Hotel est neutre : le pronom relatif au nominatif est das. Le verbe de la relative reste en fin.", audioPrompt: "Das ist das Hotel, das ich reserviert habe." },
   },
 ];
 

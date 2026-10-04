@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { JitsiRoom } from "@/components/jitsi-room";
+import { GermanPronunciationButton, GermanVoiceStatus } from "@/components/german-pronunciation";
 import { directorBiography } from "@/lib/content/director-biography";
 import {
   germanA1Curriculum as germanA1ProgramCurriculum,
@@ -1320,6 +1321,7 @@ export function AppShell() {
                   <span style={{ width: `${(selectedCompletedLessons.length / germanCurriculum.lessons.length) * 100}%` }} />
                 </div>
               </div>
+              <GermanVoiceStatus />
               <div className="courseLearningLayout">
                 <nav className="courseCurriculum" aria-label="Curriculum du cours">
                   <h3>Curriculum</h3>
@@ -1375,6 +1377,11 @@ export function AppShell() {
                       }}>
                         <fieldset className="quizQuestion">
                           <legend>{activeGermanQuiz.question}</legend>
+                          {activeGermanQuiz.audioPrompt && (
+                            <div className="quizQuestionTools">
+                              <GermanPronunciationButton text={activeGermanQuiz.audioPrompt} label="Écouter l’énoncé" />
+                            </div>
+                          )}
                           <div className="quizChoices">
                             {activeGermanQuiz.options.map((option, index) => {
                               const answers = germanQuizAnswers[activeGermanQuiz.id] ?? [];
@@ -1383,29 +1390,31 @@ export function AppShell() {
                               const isCorrectOption = activeGermanQuiz.answers.includes(option);
                               const resultClass = hasResult && isCorrectOption ? "correct" : hasResult && isSelected ? "incorrect" : "";
                               return (
-                                <button
-                                  type="button"
-                                  key={option}
-                                  className={`quizChoice ${isSelected ? "selected" : ""} ${resultClass}`}
-                                  aria-pressed={isSelected}
-                                  onClick={() => {
-                                    setGermanQuizAnswers((current) => {
-                                      const currentAnswers = current[activeGermanQuiz.id] ?? [];
-                                      const nextAnswers = activeGermanQuiz.mode === "multiple"
-                                        ? currentAnswers.includes(option) ? currentAnswers.filter((answer) => answer !== option) : [...currentAnswers, option]
-                                        : [option];
-                                      return { ...current, [activeGermanQuiz.id]: nextAnswers };
-                                    });
-                                    setGermanQuizResults((results) => {
-                                      const next = { ...results };
-                                      delete next[activeGermanQuiz.id];
-                                      return next;
-                                    });
-                                  }}
-                                >
-                                  <span className="quizChoiceMarker">{isSelected ? "✓" : String.fromCharCode(65 + index)}</span>
-                                  <span>{option}</span>
-                                </button>
+                                <div className="quizChoiceRow" key={option}>
+                                  <button
+                                    type="button"
+                                    className={`quizChoice ${isSelected ? "selected" : ""} ${resultClass}`}
+                                    aria-pressed={isSelected}
+                                    onClick={() => {
+                                      setGermanQuizAnswers((current) => {
+                                        const currentAnswers = current[activeGermanQuiz.id] ?? [];
+                                        const nextAnswers = activeGermanQuiz.mode === "multiple"
+                                          ? currentAnswers.includes(option) ? currentAnswers.filter((answer) => answer !== option) : [...currentAnswers, option]
+                                          : [option];
+                                        return { ...current, [activeGermanQuiz.id]: nextAnswers };
+                                      });
+                                      setGermanQuizResults((results) => {
+                                        const next = { ...results };
+                                        delete next[activeGermanQuiz.id];
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    <span className="quizChoiceMarker">{isSelected ? "✓" : String.fromCharCode(65 + index)}</span>
+                                    <span>{option}</span>
+                                  </button>
+                                  {activeGermanQuiz.speakOptions !== false && <GermanPronunciationButton text={option} label="Prononcer" />}
+                                </div>
                               );
                             })}
                           </div>
@@ -1448,6 +1457,7 @@ export function AppShell() {
                           {activeGermanLesson.vocabulary.map((entry) => (
                             <div className="vocabularyRow" key={entry.word}>
                               <strong lang="de">{entry.word}</strong><span>{entry.meaning}</span><small>Prononciation : {entry.pronunciation}</small>
+                              <GermanPronunciationButton text={entry.word} label="Prononcer" />
                             </div>
                           ))}
                         </div>
@@ -1460,6 +1470,7 @@ export function AppShell() {
                               <strong lang="de">{example.german}</strong>
                               <span>{example.french}</span>
                               <small>{example.note}</small>
+                              <GermanPronunciationButton text={example.german} label="Écouter l’exemple" />
                             </blockquote>
                           ))}
                         </div>
@@ -1476,7 +1487,7 @@ export function AppShell() {
                           {activeGermanLesson.dialogue.map((line, index) => (
                             <div className="lessonDialogueLine" key={`${line.speaker}-${index}`}>
                               <span>{line.speaker}</span>
-                              <div><strong lang="de">{line.german}</strong><small>{line.french}</small></div>
+                              <div><strong lang="de">{line.german}</strong><small>{line.french}</small><GermanPronunciationButton text={line.german} label="Écouter le dialogue" /></div>
                             </div>
                           ))}
                         </div>
