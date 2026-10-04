@@ -22,6 +22,7 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "prettier": "^3.9.6",
+    "supabase": "^2.119.0",
     "typescript": "^5.8.3"
   }
 }
