@@ -4,7 +4,21 @@ const { loadEnvConfig } = require('@next/env')
 const { createClient } = require('@supabase/supabase-js')
 const { stdin, stdout } = require('node:process')
 
-const STAGING_PROJECT_REF = 'usyfvtyqnjuflhswrfpg'
+const TARGETS = {
+  staging: {
+    label: 'ALATA1',
+    ref: 'usyfvtyqnjuflhswrfpg',
+    urlEnv: 'NEXT_PUBLIC_SUPABASE_URL',
+    keyEnv: 'SUPABASE_SERVICE_ROLE_KEY',
+  },
+  production: {
+    label: 'mara-sprach-team',
+    ref: 'swiabocapgyzzknrmjkf',
+    urlEnv: 'SUPABASE_PRODUCTION_URL',
+    keyEnv: 'supabase_production_admin_key',
+  },
+}
+
 const ACCOUNTS = [
   { email: 'ibrahima.alata@conserto.pro', label: 'Admin' },
   { email: 'ibrahima.alata@gmail.com', label: 'Enseignant' },
@@ -71,24 +85,58 @@ function askMasked(question) {
 }
 
 async function main() {
-  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const isProduction = process.argv.includes('--production')
+  const updateAll = process.argv.includes('--all')
+  const target = isProduction ? TARGETS.production : TARGETS.staging
+  const projectUrl = process.env[target.urlEnv]
+  const adminKey = process.env[target.keyEnv] ?? process.env[target.keyEnv.toUpperCase()]
 
-  if (!projectUrl || !serviceRoleKey) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY manque dans .env.local.')
+  if (!projectUrl || !adminKey) {
+    throw new Error(`${target.urlEnv} ou ${target.keyEnv} manque dans .env.local.`)
   }
-  if (!projectUrl.includes(STAGING_PROJECT_REF)) {
-    throw new Error('Arrêt : .env.local ne cible pas ALATA1. Aucun compte n’a été modifié.')
+  if (!projectUrl.includes(target.ref)) {
+    throw new Error(`Arrêt : l’URL ne correspond pas au projet ${target.label}. Aucun compte n’a été modifié.`)
+  }
+  if (isProduction && !updateAll) {
+    throw new Error('Pour éviter toute ambiguïté, le mode production exige les options --production --all.')
   }
 
-  console.log('Projet vérifié : ALATA1')
-  ACCOUNTS.forEach((account, index) => {
-    console.log(`${index + 1}. ${account.label} — ${account.email}`)
+  const supabase = createClient(projectUrl, adminKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
   })
+  const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  if (error) throw new Error(`Impossible de vérifier les utilisateurs sur ${target.label}.`)
 
-  const selection = await ask('Compte à modifier (1-3) : ')
-  const account = ACCOUNTS[Number(selection) - 1]
-  if (!account) throw new Error('Choix invalide. Aucun compte n’a été modifié.')
+  let selectedAccounts = ACCOUNTS
+  if (!updateAll) {
+    console.log(`Projet vérifié : ${target.label}`)
+    ACCOUNTS.forEach((account, index) => {
+      console.log(`${index + 1}. ${account.label} — ${account.email}`)
+    })
+    const selection = await ask('Compte à modifier (1-3) : ')
+    const account = ACCOUNTS[Number(selection) - 1]
+    if (!account) throw new Error('Choix invalide. Aucun compte n’a été modifié.')
+    selectedAccounts = [account]
+  } else {
+    console.log(`Projet vérifié : ${target.label}`)
+    console.log('Comptes ciblés :')
+    ACCOUNTS.forEach((account) => console.log(`- ${account.email}`))
+  }
+
+  const usersByEmail = new Map(data.users.map((user) => [user.email?.toLowerCase(), user]))
+  const selectedUsers = selectedAccounts.map((account) => ({
+    account,
+    user: usersByEmail.get(account.email),
+  }))
+  const missingEmails = selectedUsers.filter(({ user }) => !user).map(({ account }) => account.email)
+  if (missingEmails.length > 0) {
+    throw new Error(`Compte(s) absent(s) sur ${target.label} : ${missingEmails.join(', ')}. Aucun mot de passe n’a été modifié.`)
+  }
+
+  if (isProduction) {
+    const confirmation = await ask('Pour confirmer la production, tape PRODUCTION : ')
+    if (confirmation !== 'PRODUCTION') throw new Error('Confirmation incorrecte. Aucun compte n’a été modifié.')
+  }
 
   let password
   try {
@@ -97,19 +145,13 @@ async function main() {
     if (password.length < 8) throw new Error('Le mot de passe doit contenir au moins 8 caractères.')
     if (password !== confirmation) throw new Error('Les deux mots de passe ne correspondent pas.')
 
-    const supabase = createClient(projectUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-    const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
-    if (error) throw new Error('Impossible de vérifier les utilisateurs sur ALATA1.')
-
-    const user = data.users.find((candidate) => candidate.email?.toLowerCase() === account.email)
-    if (!user) throw new Error(`Le compte ${account.email} est introuvable sur ALATA1.`)
-
-    const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { password })
-    if (updateError) throw new Error('Supabase a refusé la mise à jour du mot de passe.')
-
-    console.log(`Mot de passe mis à jour pour ${account.email} sur ALATA1.`)
+    for (const { account, user } of selectedUsers) {
+      const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { password })
+      if (updateError) {
+        throw new Error(`Échec de la mise à jour pour ${account.email} sur ${target.label}.`)
+      }
+      console.log(`Mot de passe mis à jour pour ${account.email} sur ${target.label}.`)
+    }
   } finally {
     password = null
   }
