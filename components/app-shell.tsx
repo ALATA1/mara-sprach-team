@@ -56,6 +56,8 @@ type UploadedCourseDocument = {
   created_at: string;
 };
 
+type VideoCourse = { title: string; url: string };
+
 const JITSI_LIVE_URLS = [
   "https://meet.jit.si/MaraSprachA1Live",
   "https://meet.jit.si/MaraSprachDeutschLive",
@@ -308,6 +310,9 @@ export function AppShell() {
     [contactStatus, setContactStatus] = useState<{ type: "success" | "error"; message: string } | null>(null),
     [liveJoined, setLiveJoined] = useState(false),
     [activeCourseTab, setActiveCourseTab] = useState<"learning" | "documents">("learning"),
+    [videoCourses, setVideoCourses] = useState<VideoCourse[]>([]),
+    [videoCoursesLoading, setVideoCoursesLoading] = useState(false),
+    [videoCoursesError, setVideoCoursesError] = useState(""),
     [courseDocuments, setCourseDocuments] = useState<UploadedCourseDocument[]>([]),
     [documentStorageAvailable, setDocumentStorageAvailable] = useState(false),
     [documentSetupMessage, setDocumentSetupMessage] = useState("Vérification de la configuration Supabase…"),
@@ -461,6 +466,33 @@ export function AppShell() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (page !== "video-courses") return;
+
+    let active = true;
+    setVideoCoursesLoading(true);
+    setVideoCoursesError("");
+    fetch("/api/videos")
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Impossible de charger les cours vidéo.");
+        return result.videos as VideoCourse[];
+      })
+      .then((videos) => {
+        if (active) setVideoCourses(videos);
+      })
+      .catch((error: unknown) => {
+        if (active) setVideoCoursesError(error instanceof Error ? error.message : "Impossible de charger les cours vidéo.");
+      })
+      .finally(() => {
+        if (active) setVideoCoursesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [page]);
 
   useEffect(() => {
     let active = true;
@@ -1146,8 +1178,7 @@ export function AppShell() {
                 type="button"
                 className="mini miniButton"
                 onClick={() => {
-                  setLanguage("Français");
-                  go("courses");
+                  go("video-courses");
                 }}
               >
                 <strong>🎬 {localizedText("Cours en vidéo", "Videokurse", "Video courses")}</strong>
@@ -1482,6 +1513,34 @@ export function AppShell() {
             </button>
             {contactStatus && <p className={`contactStatus ${contactStatus.type}`} role="status">{contactStatus.message}</p>}
           </form>
+        </main>
+      )}
+      {page === "video-courses" && (
+        <main className="shell videoCoursesPage">
+          <header className="videoCoursesHero">
+            <span className="liveInfoLabel">MARA-SPRACH TEAM · APPRENDRE À SON RYTHME</span>
+            <h1>Tous les cours en vidéo</h1>
+            <p>Retrouvez vos leçons et lancez directement la vidéo de votre niveau.</p>
+            <button className="btn ghost" type="button" onClick={() => go("home")}>Retour à l’accueil</button>
+          </header>
+          {videoCoursesLoading && <p className="videoCoursesNotice">Chargement des cours vidéo…</p>}
+          {videoCoursesError && <p className="videoCoursesNotice error">{videoCoursesError}</p>}
+          {!videoCoursesLoading && !videoCoursesError && videoCourses.length === 0 && (
+            <p className="videoCoursesNotice">Aucun cours vidéo n’est disponible pour le moment.</p>
+          )}
+          <section className="videoCourseGrid" aria-label="Cours en vidéo">
+            {videoCourses.map((video, index) => (
+              <article className="videoCourseCard" key={video.url}>
+                <div className="videoCourseCardHeader">
+                  <span className="videoCourseNumber">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="videoCourseTag">COURS VIDÉO</span>
+                  <h2>{video.title}</h2>
+                  <p>Regardez la leçon à votre rythme</p>
+                </div>
+                <video controls preload="metadata" src={video.url} aria-label={video.title} />
+              </article>
+            ))}
+          </section>
         </main>
       )}
       {(page === "programme-a1" || page === "programme-a2" || page === "programme-b1") && (() => {
