@@ -394,6 +394,21 @@ select {
   border-radius: 24px;
   border: 1px solid #e7e9ef;
 }
+.authLinks {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+.authTextLink {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1d4ed8;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
 .field {
   margin: 17px 0;
 }

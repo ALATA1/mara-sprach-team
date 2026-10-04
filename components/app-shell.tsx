@@ -366,10 +366,18 @@ export function AppShell() {
       return;
     }
 
+    const parameters = new URLSearchParams(window.location.search);
+    const isPasswordRecovery = parameters.get("auth") === "recovery";
     let active = true;
     const restoreSession = async () => {
       const { data: { user: supabaseUser } } = await client.auth.getUser();
-      if (active && supabaseUser) await loadAccount(supabaseUser);
+      if (active && supabaseUser) {
+        await loadAccount(supabaseUser, !isPasswordRecovery);
+        if (active && isPasswordRecovery) go("password-reset");
+      } else if (active && isPasswordRecovery) {
+        setAuthError("Le lien de réinitialisation est invalide ou expiré. Demandez-en un nouveau.");
+        go("login");
+      }
       if (active) setAuthLoading(false);
     };
     void restoreSession();
@@ -381,7 +389,6 @@ export function AppShell() {
       }
     });
 
-    const parameters = new URLSearchParams(window.location.search);
     if (parameters.get("auth") === "confirmation-error") {
       setAuthError("Le lien de confirmation est invalide ou expiré. Demandez un nouvel e-mail de confirmation.");
       go("login");
@@ -589,6 +596,8 @@ export function AppShell() {
     }
   };
   const confirmationRedirectUrl = () => `${window.location.origin}/auth/callback?next=/`;
+  const passwordRecoveryRedirectUrl = () =>
+    `${window.location.origin}/auth/callback?next=${encodeURIComponent("/?auth=recovery")}`;
   const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setAuthError("");
@@ -653,12 +662,78 @@ export function AppShell() {
           go("signup-confirmation");
           return;
         }
+        if (error.code === "invalid_credentials") {
+          throw new Error("Adresse e-mail ou mot de passe incorrect. Utilisez « Mot de passe oublié ? » si nécessaire.");
+        }
         throw error;
       }
       if (!data.user) throw new Error("Supabase n’a renvoyé aucun utilisateur après la connexion.");
       await loadAccount(data.user);
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "La connexion a échoué.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const requestPasswordReset = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAuthError("");
+    setAuthMessage("");
+    const client = createClient();
+    if (!client) {
+      setAuthError("Supabase Auth n’est pas configuré. Vérifiez les variables Supabase du déploiement.");
+      return;
+    }
+
+    const email = String(new FormData(event.currentTarget).get("email") ?? "").trim();
+    setAuthBusy(true);
+    try {
+      const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: passwordRecoveryRedirectUrl(),
+      });
+      if (error) throw error;
+      setAuthMessage("Si un compte existe pour cette adresse, un e-mail de réinitialisation a été envoyé.");
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Impossible d’envoyer l’e-mail de réinitialisation.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const updatePassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAuthError("");
+    setAuthMessage("");
+    const values = new FormData(event.currentTarget);
+    const password = String(values.get("password") ?? "");
+    const passwordConfirmation = String(values.get("passwordConfirmation") ?? "");
+    if (password.length < 8) {
+      setAuthError("Le mot de passe doit contenir au moins 8 caractères.");
+      return;
+    }
+    if (password !== passwordConfirmation) {
+      setAuthError("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+
+    const client = createClient();
+    if (!client) {
+      setAuthError("Supabase Auth n’est pas configuré. Vérifiez les variables Supabase du déploiement.");
+      return;
+    }
+
+    setAuthBusy(true);
+    try {
+      const { error } = await client.auth.updateUser({ password });
+      if (error) throw error;
+      await client.auth.signOut();
+      setUser(null);
+      setPaid(false);
+      setAuthMessage("Mot de passe modifié. Vous pouvez maintenant vous connecter.");
+      go("login");
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "La modification du mot de passe a échoué.");
     } finally {
       setAuthBusy(false);
     }
@@ -1200,7 +1275,56 @@ export function AppShell() {
             {authError && <p className="authError" role="alert">{authError}</p>}
             {authMessage && <p className="authMessage" role="status">{authMessage}</p>}
             <button className="btn primary full" disabled={authBusy}>{authBusy ? "Connexion…" : "Se connecter"}</button>
+            <div className="authLinks">
+              <button type="button" className="authTextLink" onClick={() => { setAuthError(""); setAuthMessage(""); go("forgot-password"); }}>Mot de passe oublié ?</button>
+              <button type="button" className="authTextLink" onClick={() => { setAuthError(""); setAuthMessage(""); go("forgot-identifier"); }}>Identifiant oublié ?</button>
+            </div>
           </form>
+        </main>
+      )}
+      {page === "forgot-password" && (
+        <main className="shell">
+          <form className="auth" onSubmit={requestPasswordReset}>
+            <h1>Réinitialiser le mot de passe</h1>
+            <p className="muted">Saisissez l’adresse e-mail associée à votre compte. Si un compte existe, vous recevrez un lien de réinitialisation.</p>
+            <div className="field">
+              <label htmlFor="reset-email">Adresse e-mail</label>
+              <input id="reset-email" name="email" type="email" autoComplete="email" required />
+            </div>
+            {authError && <p className="authError" role="alert">{authError}</p>}
+            {authMessage && <p className="authMessage" role="status">{authMessage}</p>}
+            <button className="btn primary full" disabled={authBusy}>{authBusy ? "Envoi…" : "Envoyer le lien"}</button>
+            <div className="authLinks">
+              <button type="button" className="authTextLink" onClick={() => go("login")}>Retour à la connexion</button>
+            </div>
+          </form>
+        </main>
+      )}
+      {page === "password-reset" && (
+        <main className="shell">
+          <form className="auth" onSubmit={updatePassword}>
+            <h1>Choisir un nouveau mot de passe</h1>
+            <div className="field">
+              <label htmlFor="new-password">Nouveau mot de passe</label>
+              <input id="new-password" name="password" type="password" autoComplete="new-password" minLength={8} required />
+            </div>
+            <div className="field">
+              <label htmlFor="password-confirmation">Confirmer le mot de passe</label>
+              <input id="password-confirmation" name="passwordConfirmation" type="password" autoComplete="new-password" minLength={8} required />
+            </div>
+            {authError && <p className="authError" role="alert">{authError}</p>}
+            <button className="btn primary full" disabled={authBusy}>{authBusy ? "Modification…" : "Modifier le mot de passe"}</button>
+          </form>
+        </main>
+      )}
+      {page === "forgot-identifier" && (
+        <main className="shell">
+          <section className="auth">
+            <h1>Identifiant oublié ?</h1>
+            <p className="muted">Votre identifiant est l’adresse e-mail utilisée lors de la création du compte. Essayez les adresses e-mail que vous utilisez habituellement.</p>
+            <p className="muted">Si vous n’avez plus accès à cette adresse ou ne vous en souvenez pas, contactez l’équipe Mara par votre canal habituel. Pour protéger les comptes, nous ne pouvons pas rechercher une adresse à partir d’un nom.</p>
+            <button type="button" className="btn primary full" onClick={() => go("login")}>Retour à la connexion</button>
+          </section>
         </main>
       )}
       {page === "signup-confirmation" && (
