@@ -287,6 +287,7 @@ export function AppShell() {
     [authError, setAuthError] = useState(""),
     [authMessage, setAuthMessage] = useState(""),
     [pendingConfirmationEmail, setPendingConfirmationEmail] = useState(""),
+    [signupAccountType, setSignupAccountType] = useState<"student" | "teacher" | "">(""),
     [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]),
     [language, setLanguage] = useState("Tous"),
     [selected, setSelected] = useState(courses[0]),
@@ -297,11 +298,14 @@ export function AppShell() {
     [logoOpen, setLogoOpen] = useState(false),
     [formationMenuOpen, setFormationMenuOpen] = useState(false),
     [aboutMenuOpen, setAboutMenuOpen] = useState(false),
+    [accountMenuOpen, setAccountMenuOpen] = useState(false),
     [languageMenuOpen, setLanguageMenuOpen] = useState(false),
-    [uiLanguage, setUiLanguage] = useState<"fr" | "de">("fr"),
+    [uiLanguage, setUiLanguage] = useState<"fr" | "de" | "en">("fr"),
     [cookieChoice, setCookieChoice] = useState<"all" | "necessary" | null>(null),
     [cookiePreferencesOpen, setCookiePreferencesOpen] = useState(false),
     [cookieReady, setCookieReady] = useState(false),
+    [contactSubmitting, setContactSubmitting] = useState(false),
+    [contactStatus, setContactStatus] = useState<{ type: "success" | "error"; message: string } | null>(null),
     [liveJoined, setLiveJoined] = useState(false),
     [activeCourseTab, setActiveCourseTab] = useState<"learning" | "documents">("learning"),
     [courseDocuments, setCourseDocuments] = useState<UploadedCourseDocument[]>([]),
@@ -509,17 +513,54 @@ export function AppShell() {
 
   useEffect(() => {
     const storedLanguage = localStorage.getItem("mara-ui-language-v1");
-    if (storedLanguage === "fr" || storedLanguage === "de") setUiLanguage(storedLanguage);
+    if (storedLanguage === "fr" || storedLanguage === "de" || storedLanguage === "en") setUiLanguage(storedLanguage);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = uiLanguage;
+  }, [uiLanguage]);
 
   const saveCookieChoice = (choice: "all" | "necessary") => {
     localStorage.setItem("mara-cookie-consent-v1", choice);
     setCookieChoice(choice);
     setCookiePreferencesOpen(false);
   };
+
+  const submitContactMessage = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setContactSubmitting(true);
+    setContactStatus(null);
+    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(formData.entries())),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Impossible d’envoyer votre demande.");
+      form.reset();
+      setContactStatus({ type: "success", message: "Votre demande a bien été enregistrée. Nous vous recontacterons dès que possible." });
+    } catch (error) {
+      setContactStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Une erreur est survenue. Vous pouvez nous appeler au +33 6 18 65 77 20.",
+      });
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
   const go = (p: string) => {
       setPage(p);
       scrollTo(0, 0);
+    },
+    startSignup = () => {
+      setSignupAccountType("");
+      setAuthError("");
+      setAuthMessage("");
+      go("signup-profile");
     },
     notify = (m: string) => {
       setToast(m);
@@ -530,6 +571,8 @@ export function AppShell() {
       [language],
     );
   const germanCurriculum = selected.curriculum;
+  const localizedText = (french: string, german: string, english: string) =>
+    uiLanguage === "de" ? german : uiLanguage === "en" ? english : french;
   const selectedCompletedLessons = completedGermanLessons[selected.id] ?? [];
   const activeGermanLesson = germanCurriculum?.lessons.find((lesson) => lesson.id === activeGermanLessonId);
   const activeGermanQuiz = germanCurriculum?.quizzes.find((quiz) => quiz.id === activeGermanQuizId);
@@ -664,7 +707,11 @@ export function AppShell() {
         email,
         password,
         options: {
-          data: { first_name: firstName, last_name: lastName },
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            requested_account_type: signupAccountType,
+          },
           emailRedirectTo: confirmationRedirectUrl(),
         },
       });
@@ -672,9 +719,16 @@ export function AppShell() {
 
       setPendingConfirmationEmail(email);
       if (data.user && data.session) {
-        await loadAccount(data.user);
+        if (signupAccountType === "teacher") {
+          setAuthMessage("Votre demande de compte enseignant a été enregistrée. L’accès enseignant sera activé après validation par l’administration.");
+          go("signup-confirmation");
+        } else {
+          await loadAccount(data.user);
+        }
       } else {
-        setAuthMessage("Si cette adresse peut être inscrite, un e-mail de confirmation vient d’être envoyé. Confirmez-la avant de vous connecter.");
+        setAuthMessage(signupAccountType === "teacher"
+          ? "Si cette adresse peut être inscrite, un e-mail de confirmation vient d’être envoyé. Confirmez-le ; la demande d’accès enseignant reste soumise à validation administrative."
+          : "Si cette adresse peut être inscrite, un e-mail de confirmation vient d’être envoyé. Confirmez-la avant de vous connecter.");
         go("signup-confirmation");
       }
     } catch (error) {
@@ -826,7 +880,7 @@ export function AppShell() {
         </div>
         <nav className="nav">
           <button className="btn ghost hideMobile" onClick={() => go("home")}>
-            {uiLanguage === "fr" ? "Accueil" : "Startseite"}
+            {localizedText("Accueil", "Startseite", "Home")}
           </button>
           <div
             className={`navDropdown ${aboutMenuOpen ? "open" : ""}`}
@@ -845,18 +899,21 @@ export function AppShell() {
           >
             <button
               type="button"
-              className={`btn ghost hideMobile formationTrigger aboutTrigger ${page === "pdg" ? "active" : ""}`}
+              className={`btn ghost hideMobile formationTrigger aboutTrigger ${["about", "contact", "pdg"].includes(page) ? "active" : ""}`}
               aria-expanded={aboutMenuOpen}
               onClick={() => setAboutMenuOpen(true)}
             >
-              {uiLanguage === "fr" ? "À propos" : "Über uns"}
+              {localizedText("À propos", "Über uns", "About")}
             </button>
-            <div className="formationMenu" aria-label={uiLanguage === "fr" ? "Sous-menus À propos" : "Untermenü Über uns"}>
-              <button className={page === "pdg" ? "active" : ""} onClick={() => { setAboutMenuOpen(false); go("pdg"); }}>
-                {uiLanguage === "fr" ? "Qui sommes-nous ?" : "Wer wir sind"}
+            <div className="formationMenu" aria-label={localizedText("Sous-menus À propos", "Untermenü Über uns", "About submenu")}>
+              <button className={page === "about" ? "active" : ""} onClick={() => { setAboutMenuOpen(false); go("about"); }}>
+                {localizedText("Qui sommes-nous ?", "Wer wir sind", "Who we are")}
               </button>
               <button className={page === "contact" ? "active" : ""} type="button" onClick={() => { setAboutMenuOpen(false); go("contact"); }}>
-                {uiLanguage === "fr" ? "Contact" : "Kontakt"}
+                {localizedText("Contact", "Kontakt", "Contact")}
+              </button>
+              <button className={page === "pdg" ? "active" : ""} onClick={() => { setAboutMenuOpen(false); go("pdg"); }}>
+                PDG
               </button>
             </div>
           </div>
@@ -873,16 +930,20 @@ export function AppShell() {
               type="button"
               className="btn ghost hideMobile formationTrigger languageTrigger"
               aria-expanded={languageMenuOpen}
+              aria-label={`${localizedText("Choisir la langue de l’application", "Sprache der Anwendung auswählen", "Choose the application language")}. ${localizedText("Langue actuelle", "Aktuelle Sprache", "Current language")} : ${uiLanguage === "fr" ? "Français" : uiLanguage === "de" ? "Deutsch" : "English"}`}
               onClick={() => setLanguageMenuOpen(true)}
             >
-              {uiLanguage === "fr" ? "Français" : "Deutsch"}
+              Langue
             </button>
-            <div className="formationMenu" aria-label={uiLanguage === "fr" ? "Langue de l’application" : "Sprache der Anwendung"}>
+            <div className="formationMenu" aria-label={localizedText("Langue de l’application", "Sprache der Anwendung", "Application language")}>
               <button className={uiLanguage === "fr" ? "active" : ""} onClick={() => { setUiLanguage("fr"); localStorage.setItem("mara-ui-language-v1", "fr"); setLanguageMenuOpen(false); }}>
                 Français
               </button>
               <button className={uiLanguage === "de" ? "active" : ""} onClick={() => { setUiLanguage("de"); localStorage.setItem("mara-ui-language-v1", "de"); setLanguageMenuOpen(false); }}>
                 Deutsch
+              </button>
+              <button className={uiLanguage === "en" ? "active" : ""} onClick={() => { setUiLanguage("en"); localStorage.setItem("mara-ui-language-v1", "en"); setLanguageMenuOpen(false); }}>
+                English
               </button>
             </div>
           </div>
@@ -910,12 +971,12 @@ export function AppShell() {
                 aria-expanded={formationMenuOpen}
                 onClick={() => setFormationMenuOpen(true)}
               >
-                {uiLanguage === "fr" ? "Formation" : "Lernen"}
+                {localizedText("Formation", "Lernen", "Learning")}
               </button>
               <div className="formationMenu" aria-label="Sous-menus Formation">
                 {(paid || user.role === "teacher") && (
                   <button className={page === "courses" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("courses"); }}>
-                    {uiLanguage === "fr" ? "Cours" : "Kurse"}
+                    {localizedText("Cours", "Kurse", "Courses")}
                   </button>
                 )}
                 <button className={page === "programme-a1" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-a1"); }}>
@@ -935,23 +996,47 @@ export function AppShell() {
               {(paid || user.role === "teacher") && (
                 <>
                   <button className="btn ghost hideMobile" onClick={() => go("live")}>LIVE</button>
-                  <button className="btn ghost hideMobile" onClick={() => go("support")}>{uiLanguage === "fr" ? "Accompagnement" : "Begleitung"}</button>
+                  <button className="btn ghost hideMobile" onClick={() => go("support")}>{localizedText("Accompagnement", "Begleitung", "Support")}</button>
                 </>
               )}
               <button className="btn secondary" onClick={() => go(paid || user.role === "teacher" ? "dashboard" : "payment")}>
-                {user.role === "teacher" ? (uiLanguage === "fr" ? "Espace enseignant" : "Lehrkraftbereich") : paid ? (uiLanguage === "fr" ? "Espace étudiant" : "Lernbereich") : (uiLanguage === "fr" ? "Finaliser mon accès" : "Zugang abschließen")}
+                {user.role === "teacher" ? localizedText("Espace enseignant", "Lehrkraftbereich", "Teacher area") : paid ? localizedText("Espace étudiant", "Lernbereich", "Student area") : localizedText("Finaliser mon accès", "Zugang abschließen", "Complete my access")}
               </button>
-              <button className="btn ghost" onClick={() => void signOut()}>{uiLanguage === "fr" ? "Déconnexion" : "Abmelden"}</button>
+              <button className="btn ghost" onClick={() => void signOut()}>{localizedText("Déconnexion", "Abmelden", "Sign out")}</button>
             </>
           ) : (
-            <>
-              <button className="btn ghost" onClick={() => go("login")}>
-                {uiLanguage === "fr" ? "Connexion" : "Anmelden"}
+            <div
+              className={`navDropdown ${accountMenuOpen ? "open" : ""}`}
+              onMouseEnter={() => setAccountMenuOpen(true)}
+              onMouseLeave={() => setAccountMenuOpen(false)}
+              onFocusCapture={() => setAccountMenuOpen(true)}
+              onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setAccountMenuOpen(false);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setAccountMenuOpen(false);
+                  event.currentTarget.querySelector<HTMLButtonElement>(".accountTrigger")?.focus();
+                }
+              }}
+            >
+              <button
+                type="button"
+                className={`btn ghost hideMobile formationTrigger accountTrigger ${["login", "signup-profile", "signup"].includes(page) ? "active" : ""}`}
+                aria-expanded={accountMenuOpen}
+                onClick={() => setAccountMenuOpen(true)}
+              >
+                {localizedText("Compte", "Konto", "Account")}
               </button>
-              <button className="btn primary" onClick={() => go("signup")}>
-                {uiLanguage === "fr" ? "Créer un compte" : "Konto erstellen"}
-              </button>
-            </>
+              <div className="formationMenu" aria-label={localizedText("Menu Compte", "Kontomenü", "Account menu")}>
+                <button className={page === "login" ? "active" : ""} onClick={() => { setAccountMenuOpen(false); go("login"); }}>
+                  {localizedText("Connexion", "Anmelden", "Sign in")}
+                </button>
+                <button className={page === "signup-profile" || page === "signup" ? "active" : ""} onClick={() => { setAccountMenuOpen(false); startSignup(); }}>
+                  {localizedText("Créer un compte", "Konto erstellen", "Create account")}
+                </button>
+              </div>
+            </div>
           )}
         </nav>
       </header>
@@ -969,7 +1054,7 @@ export function AppShell() {
               >
                 <Image
                   src="/logo/DG.png"
-                  alt={uiLanguage === "fr" ? "Portrait du fondateur" : "Porträt des Gründers"}
+                  alt={localizedText("Portrait du fondateur", "Porträt des Gründers", "Founder portrait")}
                   width={92}
                   height={92}
                   style={{
@@ -993,7 +1078,7 @@ export function AppShell() {
                       marginBottom: "5px",
                     }}
                   >
-                    {uiLanguage === "fr" ? "Mot du fondateur" : "Wort des Gründers"}
+                    {localizedText("Mot du fondateur", "Wort des Gründers", "A word from the founder")}
                   </div>
 
                   <div
@@ -1003,24 +1088,24 @@ export function AppShell() {
                       lineHeight: 1.5,
                     }}
                   >
-                    {uiLanguage === "fr" ? <>« Mieux parler,<br />c’est mieux s’intégrer. »</> : <>„Besser sprechen,<br />besser ankommen.“</>}
+                    {uiLanguage === "fr" ? <>« Mieux parler,<br />c’est mieux s’intégrer. »</> : uiLanguage === "de" ? <>„Besser sprechen,<br />besser ankommen.“</> : <>“Speak better,<br />feel more at home.”</>}
                   </div>
                 </div>
               </div>
 
-              <span className="eyebrow">{uiLanguage === "fr" ? "Apprendre, progresser, être accompagné." : "Lernen, Fortschritte machen, begleitet werden."}</span>
+              <span className="eyebrow">{localizedText("Apprendre, progresser, être accompagné.", "Lernen, Fortschritte machen, begleitet werden.", "Learn, grow, and get support.")}</span>
 
               <h1>
-                {uiLanguage === "fr" ? "Apprendre une langue et construire un avenir." : "Eine Sprache lernen und eine Zukunft aufbauen."}
+                {localizedText("Apprendre une langue et construire un avenir.", "Eine Sprache lernen und eine Zukunft aufbauen.", "Learn a language and build a future.")}
               </h1>
 
               <p>
-                {uiLanguage === "fr" ? "Cours de français, cours d’allemand et accompagnement personnalisé pour réussir votre intégration, progresser et construire votre avenir." : "Französisch- und Deutschkurse sowie persönliche Begleitung, damit Sie sich integrieren, Fortschritte machen und Ihre Zukunft gestalten können."}
+                {localizedText("Cours de français, cours d’allemand et accompagnement personnalisé pour réussir votre intégration, progresser et construire votre avenir.", "Französisch- und Deutschkurse sowie persönliche Begleitung, damit Sie sich integrieren, Fortschritte machen und Ihre Zukunft gestalten können.", "French and German courses with personal support to help you settle in, make progress, and build your future.")}
               </p>
 
               <div className="actions">
-                <button className="btn primary" onClick={() => go("signup")}>
-                  {uiLanguage === "fr" ? "Commencer à partir de 25 €" : "Ab 25 € starten"}
+                <button className="btn primary" onClick={startSignup}>
+                  {localizedText("Commencer à partir de 25 €", "Ab 25 € starten", "Get started from €25")}
                 </button>
 
                 <button
@@ -1029,7 +1114,7 @@ export function AppShell() {
                     document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })
                   }
                 >
-                  {uiLanguage === "fr" ? "Découvrir les services" : "Angebote entdecken"}
+                  {localizedText("Découvrir les services", "Angebote entdecken", "Explore our services")}
                 </button>
               </div>
             </div>
@@ -1042,7 +1127,7 @@ export function AppShell() {
                   marginBottom: "15px",
                 }}
               >
-                {uiLanguage === "fr" ? "VOTRE PARCOURS" : "IHR LERNWEG"}
+                {localizedText("VOTRE PARCOURS", "IHR LERNWEG", "YOUR LEARNING PATH")}
               </div>
 
               <h2
@@ -1052,9 +1137,9 @@ export function AppShell() {
                   marginBottom: "25px",
                 }}
               >
-                {uiLanguage === "fr" ? "Un espace simple pour" : "Ein einfacher Ort, um"}
+                {localizedText("Un espace simple pour", "Ein einfacher Ort, um", "A simple place to")}
                 <br />
-                {uiLanguage === "fr" ? "progresser à votre rythme" : "im eigenen Tempo zu lernen"}
+                {localizedText("progresser à votre rythme", "im eigenen Tempo zu lernen", "learn at your own pace")}
               </h2>
 
               <button
@@ -1065,8 +1150,8 @@ export function AppShell() {
                   go("courses");
                 }}
               >
-                <strong>🎬 {uiLanguage === "fr" ? "Cours en vidéo" : "Videokurse"}</strong>
-                {uiLanguage === "fr" ? "Disponibles quand vous le souhaitez" : "Jederzeit verfügbar"}
+                <strong>🎬 {localizedText("Cours en vidéo", "Videokurse", "Video courses")}</strong>
+                {localizedText("Disponibles quand vous le souhaitez", "Jederzeit verfügbar", "Available whenever you are")}
               </button>
 
               <button
@@ -1074,8 +1159,8 @@ export function AppShell() {
                 className="mini miniButton"
                 onClick={() => go("live")}
               >
-                <strong>🎥 {uiLanguage === "fr" ? "Sessions LIVE" : "Live-Unterricht"}</strong>
-                {uiLanguage === "fr" ? "Échangez avec des professeurs en direct" : "Sprechen Sie live mit Lehrkräften"}
+                <strong>🎥 {localizedText("Sessions LIVE", "Live-Unterricht", "Live sessions")}</strong>
+                {localizedText("Échangez avec des professeurs en direct", "Sprechen Sie live mit Lehrkräften", "Talk with teachers in real time")}
               </button>
 
               <button
@@ -1083,8 +1168,8 @@ export function AppShell() {
                 className="mini miniButton"
                 onClick={() => go("support")}
               >
-                <strong>🤝 {uiLanguage === "fr" ? "Accompagnement" : "Persönliche Begleitung"}</strong>
-                {uiLanguage === "fr" ? "Un volontaire vous aide dans vos démarches" : "Freiwillige unterstützen Sie bei Ihren Anliegen"}
+                <strong>🤝 {localizedText("Accompagnement", "Persönliche Begleitung", "Personal support")}</strong>
+                {localizedText("Un volontaire vous aide dans vos démarches", "Freiwillige unterstützen Sie bei Ihren Anliegen", "A volunteer can help with your administrative steps")}
               </button>
             </div>
             </section>
@@ -1111,10 +1196,10 @@ export function AppShell() {
                 
                 </div>
 
-                <h3> 📚 {uiLanguage === "fr" ? "Français et allemand" : "Französisch und Deutsch"}</h3>
+                <h3> 📚 {localizedText("Français et allemand", "Französisch und Deutsch", "French and German")}</h3>
 
                 <p className="muted">
-                {uiLanguage === "fr" ? "Des parcours organisés par niveau avec vidéos, exercices et documents." : "Lernpfade nach Niveau mit Videos, Übungen und Lernmaterialien."}
+                {localizedText("Des parcours organisés par niveau avec vidéos, exercices et documents.", "Lernpfade nach Niveau mit Videos, Übungen und Lernmaterialien.", "Level-based learning paths with videos, exercises, and resources.")}
                 </p>
             </div>
 
@@ -1135,10 +1220,10 @@ export function AppShell() {
                 
                 </div>
 
-                <h3> 🎥 {uiLanguage === "fr" ? "Cours en direct" : "Live-Unterricht"}</h3>
+                <h3> 🎥 {localizedText("Cours en direct", "Live-Unterricht", "Live classes")}</h3>
 
                 <p className="muted">
-                {uiLanguage === "fr" ? "Participez à des séances collectives et posez vos questions." : "Nehmen Sie an Gruppensitzungen teil und stellen Sie Ihre Fragen."}
+                {localizedText("Participez à des séances collectives et posez vos questions.", "Nehmen Sie an Gruppensitzungen teil und stellen Sie Ihre Fragen.", "Join group sessions and ask your questions.")}
                 </p>
             </div>
 
@@ -1159,10 +1244,10 @@ export function AppShell() {
                 
                 </div>
 
-                <h3>🧭 {uiLanguage === "fr" ? "Aide personnalisée" : "Persönliche Unterstützung"}</h3>
+                <h3>🧭 {localizedText("Aide personnalisée", "Persönliche Unterstützung", "Personal guidance")}</h3>
 
                 <p className="muted">
-                {uiLanguage === "fr" ? "Déposez une demande et suivez sa prise en charge par un volontaire." : "Stellen Sie eine Anfrage und verfolgen Sie die Unterstützung durch Freiwillige."}
+                {localizedText("Déposez une demande et suivez sa prise en charge par un volontaire.", "Stellen Sie eine Anfrage und verfolgen Sie die Unterstützung durch Freiwillige.", "Send a request and follow its progress with a volunteer.")}
                 </p>
             </div>
             </section>
@@ -1175,7 +1260,7 @@ export function AppShell() {
                     }}
                 >
                     <span className="eyebrow">
-                    {uiLanguage === "fr" ? "NOS OFFRES" : "UNSERE ANGEBOTE"}
+                    {localizedText("NOS OFFRES", "UNSERE ANGEBOTE", "OUR PLANS")}
                     </span>
 
                     <h2
@@ -1184,17 +1269,17 @@ export function AppShell() {
                         marginTop: "15px",
                     }}
                     >
-                    {uiLanguage === "fr" ? "Choisissez votre formule" : "Wählen Sie Ihr Paket"}
+                    {localizedText("Choisissez votre formule", "Wählen Sie Ihr Paket", "Choose your plan")}
                     </h2>
 
                     <p className="muted">
-                    {uiLanguage === "fr" ? "Des solutions adaptées à vos besoins et à votre rythme." : "Passende Angebote für Ihre Bedürfnisse und Ihr Tempo."}
+                    {localizedText("Des solutions adaptées à vos besoins et à votre rythme.", "Passende Angebote für Ihre Bedürfnisse und Ihr Tempo.", "Options suited to your needs and pace.")}
                     </p>
                 </div>
 
                 <div className="grid">
                     <div className="card">
-                    <h3>{uiLanguage === "fr" ? "Découverte" : "Einstieg"}</h3>
+                    <h3>{localizedText("Découverte", "Einstieg", "Starter")}</h3>
 
                     <div
                         style={{
@@ -1207,15 +1292,15 @@ export function AppShell() {
                         25 €
                     </div>
 
-                    <p>✓ {uiLanguage === "fr" ? "Accès aux cours" : "Zugang zu den Kursen"}</p>
-                    <p>✓ {uiLanguage === "fr" ? "Documents pédagogiques" : "Lernmaterialien"}</p>
-                    <p>✓ {uiLanguage === "fr" ? "Progression personnelle" : "Persönlicher Lernfortschritt"}</p>
+                    <p>✓ {localizedText("Accès aux cours", "Zugang zu den Kursen", "Course access")}</p>
+                    <p>✓ {localizedText("Documents pédagogiques", "Lernmaterialien", "Learning resources")}</p>
+                    <p>✓ {localizedText("Progression personnelle", "Persönlicher Lernfortschritt", "Personal progress tracking")}</p>
 
                     <button
                         className="btn primary full"
-                        onClick={() => go("signup")}
+                        onClick={startSignup}
                     >
-                        {uiLanguage === "fr" ? "Commencer" : "Starten"}
+                        {localizedText("Commencer", "Starten", "Get started")}
                     </button>
                     </div>
 
@@ -1238,15 +1323,15 @@ export function AppShell() {
                         40 €
                     </div>
 
-                    <p>✓ {uiLanguage === "fr" ? "Cours complets" : "Vollständige Kurse"}</p>
-                    <p>✓ {uiLanguage === "fr" ? "Sessions LIVE" : "Live-Sitzungen"}</p>
-                    <p>✓ {uiLanguage === "fr" ? "Exercices avancés" : "Fortgeschrittene Übungen"}</p>
+                    <p>✓ {localizedText("Cours complets", "Vollständige Kurse", "Full courses")}</p>
+                    <p>✓ {localizedText("Sessions LIVE", "Live-Sitzungen", "Live sessions")}</p>
+                    <p>✓ {localizedText("Exercices avancés", "Fortgeschrittene Übungen", "Advanced exercises")}</p>
 
                     <button
                         className="btn primary full"
-                        onClick={() => go("signup")}
+                        onClick={startSignup}
                     >
-                        {uiLanguage === "fr" ? "Choisir" : "Auswählen"}
+                        {localizedText("Choisir", "Auswählen", "Choose")}
                     </button>
                     </div>
 
@@ -1264,15 +1349,15 @@ export function AppShell() {
                         50 €
                     </div>
 
-                    <p>✓ {uiLanguage === "fr" ? "Tout Standard" : "Alle Standard-Leistungen"}</p>
-                    <p>✓ {uiLanguage === "fr" ? "Accompagnement individuel" : "Individuelle Begleitung"}</p>
-                    <p>✓ {uiLanguage === "fr" ? "Priorité sur les demandes" : "Bevorzugte Bearbeitung von Anfragen"}</p>
+                    <p>✓ {localizedText("Tout Standard", "Alle Standard-Leistungen", "Everything in Standard")}</p>
+                    <p>✓ {localizedText("Accompagnement individuel", "Individuelle Begleitung", "One-to-one support")}</p>
+                    <p>✓ {localizedText("Priorité sur les demandes", "Bevorzugte Bearbeitung von Anfragen", "Priority request handling")}</p>
 
                     <button
                         className="btn primary full"
-                        onClick={() => go("signup")}
+                        onClick={startSignup}
                     >
-                        {uiLanguage === "fr" ? "Choisir" : "Auswählen"}
+                        {localizedText("Choisir", "Auswählen", "Choose")}
                     </button>
                     </div>
                 </div>
@@ -1285,6 +1370,35 @@ export function AppShell() {
             </div> */}
         </main>
         )}
+      {page === "about" && (
+        <main className="shell aboutPage">
+          <header className="aboutHero">
+            <span className="liveInfoLabel">MARA-SPRACH TEAM</span>
+            <h1>{localizedText("Apprendre, comprendre, avancer ensemble", "Lernen, verstehen und gemeinsam vorankommen", "Learn, understand, and move forward together")}</h1>
+            <p>{localizedText("Mara-Sprach Team réunit des cours de français, une formation en allemand organisée par niveau et un accompagnement personnalisé. L’application aide chacun à mieux communiquer, gagner en autonomie et avancer dans ses projets.", "Mara-Sprach Team vereint Französischkurse, niveauorientierte Deutschkurse und persönliche Begleitung. Die Anwendung hilft dabei, besser zu kommunizieren, selbstständiger zu werden und eigene Ziele zu verfolgen.", "Mara-Sprach Team brings together French courses, level-based German learning, and personal support. The app helps people communicate with confidence, become more independent, and move forward with their plans.")}</p>
+          </header>
+          <section className="aboutSections">
+            <article>
+              <span className="liveInfoLabel">{localizedText("FORMATION EN ALLEMAND", "DEUTSCHKURSE", "GERMAN COURSES")}</span>
+              <h2>{localizedText("Des cours pour progresser à chaque niveau", "Kurse für Fortschritte auf jedem Niveau", "Courses to help you progress at every level")}</h2>
+              <p>{localizedText("La formation d’allemand s’adresse à différents niveaux : les parcours A1, A2 et B1 structurent une progression des premières bases vers une communication plus autonome. Chaque niveau associe des leçons, du vocabulaire en contexte, des explications de grammaire, des exercices, des quiz corrigés et un suivi de progression.", "Die Deutschkurse richten sich an verschiedene Niveaus: A1, A2 und B1 führen von den ersten Grundlagen zu einer selbstständigeren Kommunikation. Jedes Niveau umfasst Lektionen, Wortschatz im Kontext, Grammatikerklärungen, Übungen, korrigierte Quizze und Lernfortschritt.", "German courses are available at different levels. The A1, A2, and B1 paths build from the basics toward more independent communication. Each level combines lessons, contextual vocabulary, grammar explanations, exercises, reviewed quizzes, and progress tracking.")}</p>
+              <p>{localizedText("Les dialogues et les mots peuvent être écoutés à voix haute pour travailler la compréhension et la prononciation. Les thèmes évoluent des présentations et situations courantes vers les échanges sociaux, les démarches et les situations professionnelles.", "Dialoge und einzelne Wörter können angehört werden, um Hörverständnis und Aussprache zu üben. Die Themen reichen von Vorstellungsrunden und Alltagssituationen bis zu sozialen Kontakten, Behördengängen und beruflichen Situationen.", "Listen to words and dialogues to practise listening and pronunciation. Topics progress from introductions and everyday situations to social conversations, administrative tasks, and workplace communication.")}</p>
+            </article>
+            <article>
+              <span className="liveInfoLabel">{localizedText("ACCOMPAGNEMENT ADMINISTRATIF", "HILFE BEI BEHÖRDENGÄNGEN", "ADMINISTRATIVE SUPPORT")}</span>
+              <h2>{localizedText("Un appui concret dans les démarches", "Konkrete Hilfe bei wichtigen Schritten", "Practical support with everyday administration")}</h2>
+              <p>{localizedText("Comprendre un courrier, préparer un rendez-vous, remplir un formulaire ou effectuer une démarche en ligne peut être difficile lorsque la langue ou les outils numériques sont un obstacle. Mara-Sprach Team permet de demander un accompagnement adapté à sa situation.", "Briefe verstehen, Termine vorbereiten, Formulare ausfüllen oder Online-Anträge stellen: Sprachliche und digitale Hürden können solche Aufgaben erschweren. Bei Mara-Sprach Team können Sie Unterstützung anfragen, die zu Ihrer Situation passt.", "Understanding a letter, preparing for an appointment, completing a form, or using an online service can be difficult when language or digital skills are a barrier. Mara-Sprach Team lets you request support suited to your situation.")}</p>
+              <p>{localizedText("Selon les disponibilités, un volontaire peut aider à clarifier les étapes, organiser les informations utiles et gagner en confiance, dans le respect de l’autonomie et de la confidentialité de chacun.", "Je nach Verfügbarkeit kann eine freiwillige Person die einzelnen Schritte erklären, wichtige Informationen ordnen und Sie dabei unterstützen, sicherer und selbstständiger zu werden.", "Subject to availability, a volunteer can help clarify the steps, organise useful information, and build confidence while respecting each person’s independence and privacy.")}</p>
+            </article>
+            <article>
+              <span className="liveInfoLabel">{localizedText("APPRENDRE À SON RYTHME", "IM EIGENEN TEMPO LERNEN", "LEARN AT YOUR OWN PACE")}</span>
+              <h2>{localizedText("Des ressources et des échanges", "Materialien und gemeinsamer Austausch", "Learning resources and live conversation")}</h2>
+              <p>{localizedText("Les apprenants retrouvent leurs cours, exercices et documents dans un même espace, peuvent suivre leur progression et participer à des séances en direct. L’objectif est de relier l’apprentissage à des situations utiles de la vie quotidienne et de construire des acquis durables.", "Lernende finden Kurse, Übungen und Materialien an einem Ort, verfolgen ihre Fortschritte und können an Live-Terminen teilnehmen. So wird das Lernen mit Alltagssituationen verknüpft und nachhaltig gefestigt.", "Learners can access courses, exercises, and documents in one place, track their progress, and join live sessions. Learning is connected to useful everyday situations and lasting skills.")}</p>
+            </article>
+          </section>
+          <button type="button" className="btn primary" onClick={() => go("contact")}>{localizedText("Nous contacter", "Kontakt aufnehmen", "Contact us")}</button>
+        </main>
+      )}
       {page === "pdg" && (
         <main className="shell directorPage">
           <section className="directorProfile">
@@ -1317,12 +1431,57 @@ export function AppShell() {
       )}
       {page === "contact" && (
         <main className="shell contactPage">
-          <section className="card">
+          <div className="contactIntro">
             <span className="liveInfoLabel">MARA-SPRACH TEAM</span>
-            <h1>{uiLanguage === "fr" ? "Contact" : "Kontakt"}</h1>
-            <p>{uiLanguage === "fr" ? "Une question sur les cours ou l’accompagnement ? Appelez-nous." : "Fragen zu Kursen oder zur Begleitung? Rufen Sie uns an."}</p>
-            <a className="btn primary" href="tel:+33618657720">+33 6 18 65 77 20</a>
-          </section>
+            <h1>{localizedText("Contactez-nous", "Kontaktieren Sie uns", "Contact us")}</h1>
+            <p>{localizedText("Présentez votre besoin de formation ou d’accompagnement. Les champs marqués d’un astérisque sont obligatoires.", "Beschreiben Sie, wobei Sie Unterstützung benötigen. Mit einem Stern markierte Felder sind Pflichtfelder.", "Tell us what kind of course or support you need. Fields marked with an asterisk are required.")}</p>
+            <p>{localizedText("Vous pouvez aussi nous appeler au", "Sie erreichen uns auch telefonisch unter", "You can also call us at")} <a href="tel:+33618657720">+33 6 18 65 77 20</a>.</p>
+          </div>
+          <form className="contactForm" onSubmit={(event) => void submitContactMessage(event)}>
+            <div className="contactFormGrid">
+              <div className="field">
+                <label htmlFor="contact-name">{localizedText("Nom complet", "Vollständiger Name", "Full name")} *</label>
+                <input id="contact-name" name="fullName" autoComplete="name" maxLength={120} required />
+              </div>
+              <div className="field">
+                <label htmlFor="contact-email">{localizedText("Adresse e-mail", "E-Mail-Adresse", "Email address")} *</label>
+                <input id="contact-email" name="email" type="email" autoComplete="email" maxLength={254} required />
+              </div>
+              <div className="field">
+                <label htmlFor="contact-phone">{localizedText("Téléphone", "Telefon", "Phone number")} *</label>
+                <input id="contact-phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" pattern="[0-9+(). -]{7,25}" maxLength={25} required />
+              </div>
+              <div className="field">
+                <label htmlFor="contact-topic">{localizedText("Votre demande", "Ihr Anliegen", "Your request")} *</label>
+                <select id="contact-topic" name="topic" required defaultValue="">
+                  <option value="" disabled>{localizedText("Choisissez un sujet", "Bitte wählen Sie ein Thema", "Choose a topic")}</option>
+                  <option value="Cours d’allemand">{localizedText("Cours d’allemand", "Deutschkurse", "German courses")}</option>
+                  <option value="Accompagnement administratif">{localizedText("Accompagnement administratif", "Hilfe bei Behördengängen", "Administrative support")}</option>
+                  <option value="Autre demande">{localizedText("Autre demande", "Sonstiges Anliegen", "Other request")}</option>
+                </select>
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="contact-subject">{localizedText("Objet", "Betreff", "Subject")} *</label>
+              <input id="contact-subject" name="subject" maxLength={160} required />
+            </div>
+            <div className="field">
+              <label htmlFor="contact-message">{localizedText("Votre message", "Ihre Nachricht", "Your message")} *</label>
+              <textarea id="contact-message" name="message" rows={6} maxLength={5000} required />
+            </div>
+            <div className="contactHoneypot" aria-hidden="true">
+              <label htmlFor="contact-website">Site web</label>
+              <input id="contact-website" name="website" tabIndex={-1} autoComplete="off" />
+            </div>
+            <label className="contactConsent">
+              <input name="privacyAccepted" type="checkbox" value="true" required />
+              <span>{localizedText("J’accepte que mes coordonnées soient utilisées pour traiter cette demande et me recontacter à son sujet.", "Ich bin einverstanden, dass meine Angaben zur Bearbeitung dieser Anfrage und zur Kontaktaufnahme verwendet werden.", "I agree that my details may be used to process this request and contact me about it.")}</span>
+            </label>
+            <button className="btn primary" type="submit" disabled={contactSubmitting}>
+              {contactSubmitting ? localizedText("Envoi en cours…", "Wird gesendet…", "Sending…") : localizedText("Envoyer ma demande", "Anfrage senden", "Send my request")}
+            </button>
+            {contactStatus && <p className={`contactStatus ${contactStatus.type}`} role="status">{contactStatus.message}</p>}
+          </form>
         </main>
       )}
       {(page === "programme-a1" || page === "programme-a2" || page === "programme-b1") && (() => {
@@ -1375,30 +1534,64 @@ export function AppShell() {
           </main>
         );
       })()}
+      {page === "signup-profile" && (
+        <main className="shell signupProfilePage">
+          <section className="auth signupProfilePanel">
+            <h1>{localizedText("Sélectionnez votre profil", "Wählen Sie Ihr Profil", "Choose your profile")}</h1>
+            <form onSubmit={(event) => { event.preventDefault(); if (signupAccountType) go("signup"); }}>
+              <fieldset className="signupProfileChoices">
+                <legend className="srOnly">{localizedText("Type de compte à créer", "Zu erstellender Kontotyp", "Account type to create")}</legend>
+                <label className={`signupProfileOption ${signupAccountType === "student" ? "selected" : ""}`}>
+                  <input
+                    type="radio"
+                    name="signupAccountType"
+                    value="student"
+                    checked={signupAccountType === "student"}
+                    onChange={() => setSignupAccountType("student")}
+                  />
+                  <span><strong>{localizedText("ÉTUDIANT(E)", "LERNENDE(R)", "STUDENT")}</strong><small>{localizedText("Je souhaite suivre des cours ou une formation.", "Ich möchte Kurse oder eine Ausbildung besuchen.", "I want to take courses or training.")}</small></span>
+                </label>
+                <label className={`signupProfileOption ${signupAccountType === "teacher" ? "selected" : ""}`}>
+                  <input
+                    type="radio"
+                    name="signupAccountType"
+                    value="teacher"
+                    checked={signupAccountType === "teacher"}
+                    onChange={() => setSignupAccountType("teacher")}
+                  />
+                  <span><strong>{localizedText("ENSEIGNANT(E)", "LEHRKRAFT", "TEACHER")}</strong><small>{localizedText("Je souhaite proposer ou animer des cours.", "Ich möchte Kurse anbieten oder unterrichten.", "I want to offer or teach courses.")}</small></span>
+                </label>
+              </fieldset>
+              <button className="btn primary full" type="submit" disabled={!signupAccountType}>{localizedText("Continuer", "Weiter", "Continue")}</button>
+              <p className="muted authRoleNote">{localizedText("Les demandes de compte enseignant sont vérifiées et activées séparément par l’administration.", "Lehrkraftkonten werden von der Verwaltung geprüft und gesondert freigeschaltet.", "Teacher account requests are reviewed and activated separately by the administration.")}</p>
+            </form>
+          </section>
+        </main>
+      )}
       {page === "signup" && (
         <main className="shell">
           <form className="auth" onSubmit={handleSignup}>
-            <h1>Créer mon espace étudiant</h1>
+            <h1>{signupAccountType === "teacher" ? localizedText("Créer mon compte enseignant", "Mein Lehrkraftkonto erstellen", "Create my teacher account") : localizedText("Créer mon espace étudiant", "Meinen Lernbereich erstellen", "Create my student account")}</h1>
             <div className="field">
-              <label>Prénom</label>
+              <label>{localizedText("Prénom", "Vorname", "First name")}</label>
               <input name="firstName" autoComplete="given-name" required />
             </div>
             <div className="field">
-              <label>Nom</label>
+              <label>{localizedText("Nom", "Nachname", "Last name")}</label>
               <input name="lastName" autoComplete="family-name" required />
             </div>
             <div className="field">
-              <label>Adresse e-mail</label>
+              <label>{localizedText("Adresse e-mail", "E-Mail-Adresse", "Email address")}</label>
               <input name="email" type="email" autoComplete="email" required />
             </div>
             <div className="field">
-              <label>Mot de passe</label>
+              <label>{localizedText("Mot de passe", "Passwort", "Password")}</label>
               <input name="password" type="password" autoComplete="new-password" minLength={8} required />
             </div>
             {authError && <p className="authError" role="alert">{authError}</p>}
             {authMessage && <p className="authMessage" role="status">{authMessage}</p>}
-            <button className="btn primary full" disabled={authBusy}>{authBusy ? "Création du compte…" : "Créer mon compte étudiant"}</button>
-            <p className="muted authRoleNote">Les comptes enseignants sont activés séparément par l’administration afin de protéger l’espace pédagogique.</p>
+            <button className="btn primary full" disabled={authBusy}>{authBusy ? localizedText("Création du compte…", "Konto wird erstellt…", "Creating account…") : signupAccountType === "teacher" ? localizedText("Envoyer ma demande de compte enseignant", "Antrag auf ein Lehrkraftkonto senden", "Submit teacher account request") : localizedText("Créer mon compte étudiant", "Mein Lernkonto erstellen", "Create my student account")}</button>
+            {signupAccountType === "teacher" && <p className="muted authRoleNote">{localizedText("L’accès enseignant sera activé après vérification par l’administration.", "Der Zugang für Lehrkräfte wird nach Prüfung durch die Verwaltung freigeschaltet.", "Teacher access is activated after administrative review.")}</p>}
           </form>
         </main>
       )}
@@ -1474,7 +1667,7 @@ export function AppShell() {
           <section className="auth confirmationPanel">
             <span className="liveInfoLabel">VÉRIFICATION DE L’ADRESSE</span>
             <h1>Confirmez votre e-mail</h1>
-            <p className="muted">Consultez votre boîte de réception{pendingConfirmationEmail ? ` à l’adresse ${pendingConfirmationEmail}` : ""}. Ouvrez le lien reçu pour confirmer votre compte ; vous serez ensuite redirigé vers l’activation de votre espace étudiant.</p>
+            <p className="muted">Consultez votre boîte de réception{pendingConfirmationEmail ? ` à l’adresse ${pendingConfirmationEmail}` : ""}. Ouvrez le lien reçu pour confirmer votre compte ; {signupAccountType === "teacher" ? "votre demande d’accès enseignant sera ensuite étudiée par l’administration." : "vous serez ensuite redirigé vers l’activation de votre espace étudiant."}</p>
             <p className="muted">Pensez aussi aux dossiers courrier indésirable et promotions. L’envoi du message de confirmation est assuré par Supabase Auth et doit être activé dans les paramètres Email du projet.</p>
             {authError && <p className="authError" role="alert">{authError}</p>}
             {authMessage && <p className="authMessage" role="status">{authMessage}</p>}
@@ -2122,36 +2315,36 @@ export function AppShell() {
         </main>
       )}
       <div className="footer">
-        <p>{uiLanguage === "fr" ? "Par Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Cours de (Français • Allemand) et Accompagnement]" : "Von Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Französisch- und Deutschkurse sowie Begleitung]"}</p>
+        <p>{localizedText("Par Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Cours de (Français • Allemand) et Accompagnement]", "Von Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • Französisch- und Deutschkurse sowie Begleitung]", "By Mr.ALATA Ibrahima [© 2026 Mara-Sprach Team • French and German courses and support]")}</p>
         <button type="button" className="cookieSettingsLink" onClick={() => setCookiePreferencesOpen(true)}>
-          {uiLanguage === "fr" ? "Préférences cookies" : "Cookie-Einstellungen"}
+          {localizedText("Préférences cookies", "Cookie-Einstellungen", "Cookie settings")}
         </button>
       </div>
       {cookieReady && (!cookieChoice || cookiePreferencesOpen) && (
-        <aside className="cookieBanner" role="dialog" aria-label={uiLanguage === "fr" ? "Préférences de cookies" : "Cookie-Einstellungen"}>
-          <h2>{cookiePreferencesOpen ? (uiLanguage === "fr" ? "Vos préférences" : "Ihre Einstellungen") : (uiLanguage === "fr" ? "Votre confidentialité compte" : "Ihre Privatsphäre ist uns wichtig")}</h2>
+        <aside className="cookieBanner" role="dialog" aria-label={localizedText("Préférences de cookies", "Cookie-Einstellungen", "Cookie preferences")}>
+          <h2>{cookiePreferencesOpen ? localizedText("Vos préférences", "Ihre Einstellungen", "Your preferences") : localizedText("Votre confidentialité compte", "Ihre Privatsphäre ist uns wichtig", "Your privacy matters")}</h2>
           {cookiePreferencesOpen ? (
             <div className="cookieDetails">
-              <p><strong>{uiLanguage === "fr" ? "Cookies nécessaires" : "Notwendige Cookies"}</strong><br />{uiLanguage === "fr" ? "Toujours actifs pour la connexion et le fonctionnement du site." : "Für Anmeldung und Betrieb der Website immer aktiv."}</p>
-              <p><strong>{uiLanguage === "fr" ? "Mesure d’audience" : "Reichweitenmessung"}</strong><br />{uiLanguage === "fr" ? "Aucun outil de mesure d’audience n’est actuellement activé." : "Derzeit ist kein Reichweitenmessungs-Tool aktiviert."}</p>
+              <p><strong>{localizedText("Cookies nécessaires", "Notwendige Cookies", "Essential cookies")}</strong><br />{localizedText("Toujours actifs pour la connexion et le fonctionnement du site.", "Für Anmeldung und Betrieb der Website immer aktiv.", "Always active for sign-in and site functionality.")}</p>
+              <p><strong>{localizedText("Mesure d’audience", "Reichweitenmessung", "Analytics")}</strong><br />{localizedText("Aucun outil de mesure d’audience n’est actuellement activé.", "Derzeit ist kein Reichweitenmessungs-Tool aktiviert.", "No analytics tool is currently enabled.")}</p>
               <button type="button" className="btn secondary" onClick={() => saveCookieChoice("necessary")}>
-                {uiLanguage === "fr" ? "Enregistrer les cookies nécessaires" : "Nur notwendige Cookies speichern"}
+                {localizedText("Enregistrer les cookies nécessaires", "Nur notwendige Cookies speichern", "Save essential cookies only")}
               </button>
               <button type="button" className="cookieTextButton" onClick={() => setCookiePreferencesOpen(false)}>
-                {uiLanguage === "fr" ? "Retour" : "Zurück"}
+                {localizedText("Retour", "Zurück", "Back")}
               </button>
             </div>
           ) : (
             <>
-              <p>{uiLanguage === "fr" ? "Les cookies et le stockage local nécessaires assurent la connexion et le fonctionnement de Mara-Sprach Team. Vous pouvez accepter tout le stockage ou garder uniquement le nécessaire." : "Notwendige Cookies und lokaler Speicher ermöglichen die Anmeldung und den Betrieb von Mara-Sprach Team. Sie können alles akzeptieren oder nur notwendige Speicherungen zulassen."}</p>
+              <p>{localizedText("Les cookies et le stockage local nécessaires assurent la connexion et le fonctionnement de Mara-Sprach Team. Vous pouvez accepter tout le stockage ou garder uniquement le nécessaire.", "Notwendige Cookies und lokaler Speicher ermöglichen die Anmeldung und den Betrieb von Mara-Sprach Team. Sie können alles akzeptieren oder nur notwendige Speicherungen zulassen.", "Essential cookies and local storage support sign-in and the operation of Mara-Sprach Team. You can accept all storage or allow only what is necessary.")}</p>
               <button type="button" className="cookiePrimaryButton" onClick={() => saveCookieChoice("all")}>
-                {uiLanguage === "fr" ? "Tout accepter" : "Alle akzeptieren"}
+                {localizedText("Tout accepter", "Alle akzeptieren", "Accept all")}
               </button>
               <button type="button" className="cookieSecondaryButton" onClick={() => saveCookieChoice("necessary")}>
-                {uiLanguage === "fr" ? "Uniquement nécessaires" : "Nur notwendige"}
+                {localizedText("Uniquement nécessaires", "Nur notwendige", "Essential only")}
               </button>
               <button type="button" className="cookieTextButton" onClick={() => setCookiePreferencesOpen(true)}>
-                {uiLanguage === "fr" ? "Gérer mes préférences" : "Einstellungen verwalten"}
+                {localizedText("Gérer mes préférences", "Einstellungen verwalten", "Manage preferences")}
               </button>
             </>
           )}

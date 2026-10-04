@@ -441,6 +441,52 @@ select {
   border-radius: 24px;
   border: 1px solid #e7e9ef;
 }
+.signupProfilePanel {
+  max-width: 650px;
+}
+.signupProfileChoices {
+  display: grid;
+  gap: 14px;
+  margin: 24px 0;
+  padding: 0;
+  border: 0;
+}
+.signupProfileOption {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 82px;
+  padding: 18px;
+  border: 1px solid #cbd5d1;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+.signupProfileOption:hover,
+.signupProfileOption.selected {
+  border-color: #176b60;
+  background: #f1f8f5;
+}
+.signupProfileOption input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: #176b60;
+}
+.signupProfileOption strong,
+.signupProfileOption small {
+  display: block;
+}
+.signupProfileOption small {
+  margin-top: 3px;
+  color: #52605b;
+  line-height: 1.45;
+}
+.signupProfilePanel .authRoleNote {
+  margin-bottom: 0;
+}
 .authLinks {
   display: flex;
   justify-content: space-between;
