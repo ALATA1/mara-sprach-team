@@ -12,6 +12,8 @@ type Course = {
   progress: number;
   lessons: number;
   color: string;
+  documents: { title: string; type: string; summary: string }[];
+  quiz: { question: string; options: string[]; answer: string; explanation: string }[];
 };
 
 type LiveSession = {
@@ -130,6 +132,15 @@ const courses: Course[] = [
     progress: 45,
     lessons: 8,
     color: "#2563eb",
+    documents: [
+      { title: "Fiche vocabulaire : se présenter", type: "Vocabulaire", summary: "Les formules essentielles pour dire son nom, son origine et sa profession." },
+      { title: "Dialogue de première rencontre", type: "Dialogue", summary: "Un échange simple pour faire connaissance et poser les premières questions." },
+      { title: "Les verbes être et avoir", type: "Grammaire", summary: "Les conjugaisons indispensables pour parler de soi au présent." },
+    ],
+    quiz: [
+      { question: "Quelle phrase permet de donner son prénom ?", options: ["Je m'appelle Amine.", "Je suis nom Amine.", "Je nomme Amine."], answer: "Je m'appelle Amine.", explanation: "On utilise « Je m'appelle » pour donner son prénom." },
+      { question: "Complétez : Je viens ___ Maroc.", options: ["au", "du", "de la"], answer: "du", explanation: "On dit « venir du Maroc » : le nom du pays est masculin." },
+    ],
   },
   {
     id: 2,
@@ -139,6 +150,15 @@ const courses: Course[] = [
     progress: 10,
     lessons: 10,
     color: "#7c3aed",
+    documents: [
+      { title: "La ville et ses services", type: "Vocabulaire", summary: "Les mots utiles pour se repérer et trouver les services du quotidien." },
+      { title: "Demander un renseignement", type: "Pratique orale", summary: "Des expressions pour demander un chemin, un prix ou un horaire." },
+      { title: "Les verbes au présent", type: "Grammaire", summary: "Révision des verbes réguliers et des verbes fréquents irréguliers." },
+    ],
+    quiz: [
+      { question: "Quelle formule est la plus naturelle pour demander l'heure ?", options: ["Vous avez l'heure ?", "Heure est-il ?", "Je demande l'heure."], answer: "Vous avez l'heure ?", explanation: "C'est une formule courante et polie pour demander l'heure." },
+      { question: "Comment demander où se trouve la pharmacie ?", options: ["Où est la pharmacie ?", "Je suis la pharmacie.", "La pharmacie où ?"], answer: "Où est la pharmacie ?", explanation: "La structure « Où est… ? » permet de demander la localisation d'un lieu." },
+    ],
   },
   {
     id: 3,
@@ -148,6 +168,15 @@ const courses: Course[] = [
     progress: 0,
     lessons: 7,
     color: "#ea580c",
+    documents: [
+      { title: "Begrüßungen", type: "Vocabulaire", summary: "Les salutations et expressions de base pour démarrer une conversation." },
+      { title: "Im Deutschkurs", type: "Dialogue", summary: "Un dialogue pour dire son nom, son pays et ses langues." },
+      { title: "Personalpronomen", type: "Grammaire", summary: "Les pronoms personnels allemands dans des phrases simples." },
+    ],
+    quiz: [
+      { question: "Comment dire « Je m'appelle Paul » en allemand ?", options: ["Ich heiße Paul.", "Ich bin heißen Paul.", "Ich komme Paul."], answer: "Ich heiße Paul.", explanation: "La tournure usuelle pour donner son nom est « Ich heiße… »." },
+      { question: "Que signifie « Guten Morgen » ?", options: ["Bonsoir", "Bonjour (le matin)", "Au revoir"], answer: "Bonjour (le matin)", explanation: "« Guten Morgen » est la salutation utilisée le matin." },
+    ],
   },
 ];
 const liveParticipants = ["Sophie Martin", "Amine", "Yasmina", "Lucas", "Leila", "Paul", "Noémie"];
@@ -168,6 +197,8 @@ export function AppShell() {
     [chatOpen, setChatOpen] = useState(true),
     [chatInput, setChatInput] = useState(""),
     [questionInput, setQuestionInput] = useState(""),
+    [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({}),
+    [quizSubmitted, setQuizSubmitted] = useState(false),
     [liveSessions, setLiveSessions] = useState<LiveSession[]>(defaultLiveSessions),
     [activeLive, setActiveLive] = useState<LiveSession>(defaultLiveSessions[0]);
   const livePopupRef = useRef<Window | null>(null);
@@ -252,6 +283,8 @@ export function AppShell() {
           className="btn secondary"
           onClick={() => {
             setSelected(c);
+            setQuizAnswers({});
+            setQuizSubmitted(false);
             go("course");
           }}
         >
@@ -1057,10 +1090,52 @@ export function AppShell() {
             </div>
           </div>
           <div className="card">
-            <h2>Leçon 1 : Se présenter</h2>
-            <p className="muted">Apprenez les expressions essentielles et participez à un échange live avec les autres étudiants.</p>
+            <span className="liveInfoLabel">{selected.language} · Niveau {selected.level}</span>
+            <h2>Ressources du cours</h2>
+            <div style={{ display: "grid", gap: "12px" }}>
+              {selected.documents.map((document) => (
+                <article key={document.title} style={{ padding: "12px 0", borderBottom: "1px solid #e2e8f0" }}>
+                  <span className="liveInfoLabel">{document.type}</span>
+                  <h3 style={{ margin: "4px 0" }}>{document.title}</h3>
+                  <p className="muted" style={{ margin: 0 }}>{document.summary}</p>
+                </article>
+              ))}
+            </div>
+            <h2 style={{ marginTop: "24px" }}>Quiz de validation</h2>
+            <form onSubmit={(event) => { event.preventDefault(); setQuizSubmitted(true); }}>
+              <div style={{ display: "grid", gap: "18px" }}>
+                {selected.quiz.map((item, index) => (
+                  <fieldset key={item.question} style={{ border: 0, borderTop: "1px solid #e2e8f0", padding: "14px 0 0", margin: 0 }}>
+                    <legend style={{ fontWeight: 700, padding: "0 0 8px" }}>{index + 1}. {item.question}</legend>
+                    <div style={{ display: "grid", gap: "8px" }}>
+                      {item.options.map((option) => (
+                        <label key={option} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <input
+                            type="radio"
+                            name={`quiz-${selected.id}-${index}`}
+                            value={option}
+                            checked={quizAnswers[index] === option}
+                            onChange={() => setQuizAnswers((answers) => ({ ...answers, [index]: option }))}
+                          />
+                          {option}
+                        </label>
+                      ))}
+                    </div>
+                    {quizSubmitted && (
+                      <p className="muted" style={{ marginBottom: 0 }}>
+                        {quizAnswers[index] === item.answer ? "Correct. " : `Réponse attendue : ${item.answer}. `}{item.explanation}
+                      </p>
+                    )}
+                  </fieldset>
+                ))}
+              </div>
+              <button className="btn primary" type="submit" style={{ marginTop: "16px" }}>
+                Vérifier mes réponses
+              </button>
+            </form>
             <button
-              className="btn primary"
+              className="btn secondary"
+              style={{ marginTop: "12px" }}
               onClick={() => {
                 notify("Progression enregistrée");
                 setPage("home");
