@@ -4,6 +4,15 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { JitsiRoom } from "@/components/jitsi-room";
+import { directorBiography } from "@/lib/content/director-biography";
+import {
+  germanA1Curriculum as germanA1ProgramCurriculum,
+  germanA1Program,
+  germanA2Curriculum,
+  germanA2Program,
+  type GermanCurriculum,
+  type GermanProgram,
+} from "@/lib/content/german-programs";
 
 type Course = {
   id: number;
@@ -16,34 +25,6 @@ type Course = {
   documents: { title: string; type: string; summary: string }[];
   quiz: { question: string; options: string[]; answer: string; explanation: string }[];
   curriculum?: GermanCurriculum;
-};
-
-type GermanLesson = {
-  id: number;
-  title: string;
-  duration: string;
-  objectives: string[];
-  explanation: string[];
-  vocabulary: { word: string; meaning: string; pronunciation: string }[];
-  examples: { german: string; french: string; note: string }[];
-};
-
-type GermanQuiz = {
-  id: number;
-  lessonId: number;
-  title: string;
-  mode: "single" | "multiple" | "boolean";
-  question: string;
-  options: string[];
-  answers: string[];
-  explanation: string;
-};
-
-type GermanCurriculumItem = { type: "lesson" | "quiz"; id: number };
-type GermanCurriculum = {
-  modules: { id: number; title: string; items: GermanCurriculumItem[] }[];
-  lessons: GermanLesson[];
-  quizzes: GermanQuiz[];
 };
 
 type LiveSession = {
@@ -164,7 +145,7 @@ const normalizeLiveSession = (session: any): LiveSession => ({
   startAt: session.start_at ?? session.startAt,
 });
 
-const germanA1Curriculum: GermanCurriculum = {
+const germanA1Curriculum = {
   modules: [
     { id: 1, title: "Module 1 · Les bases de l’allemand", items: [{ type: "lesson", id: 1 }, { type: "quiz", id: 1 }, { type: "lesson", id: 2 }, { type: "quiz", id: 2 }] },
     { id: 2, title: "Module 2 · Saluer et communiquer au quotidien", items: [{ type: "lesson", id: 3 }, { type: "quiz", id: 3 }, { type: "lesson", id: 4 }, { type: "quiz", id: 4 }, { type: "lesson", id: 5 }, { type: "quiz", id: 5 }, { type: "lesson", id: 6 }, { type: "quiz", id: 6 }, { type: "lesson", id: 7 }, { type: "quiz", id: 7 }] },
@@ -240,18 +221,37 @@ const courses: Course[] = [
     level: "A1",
     title: "Allemand débutant – Niveau A1",
     progress: 0,
-    lessons: 10,
+    lessons: 6,
     color: "#ea580c",
     documents: [
-      { title: "Begrüßungen", type: "Vocabulaire", summary: "Les salutations et expressions de base pour démarrer une conversation." },
-      { title: "Im Deutschkurs", type: "Dialogue", summary: "Un dialogue pour dire son nom, son pays et ses langues." },
-      { title: "Personalpronomen", type: "Grammaire", summary: "Les pronoms personnels allemands dans des phrases simples." },
+      { title: "Fiches de vocabulaire A1", type: "Vocabulaire", summary: "Mots et expressions des six chapitres, classés par situation." },
+      { title: "Récapitulatif de grammaire A1", type: "Grammaire", summary: "sein, questions en W-, possessifs, accusatif, verbes séparables, können et indications de lieu." },
+      { title: "Portfolio A1", type: "Portfolio", summary: "Présentations, dialogues et tâches personnelles à compléter au fil des chapitres." },
     ],
     quiz: [
       { question: "Comment dire « Je m'appelle Paul » en allemand ?", options: ["Ich heiße Paul.", "Ich bin heißen Paul.", "Ich komme Paul."], answer: "Ich heiße Paul.", explanation: "La tournure usuelle pour donner son nom est « Ich heiße… »." },
       { question: "Que signifie « Guten Morgen » ?", options: ["Bonsoir", "Bonjour (le matin)", "Au revoir"], answer: "Bonjour (le matin)", explanation: "« Guten Morgen » est la salutation utilisée le matin." },
     ],
-    curriculum: germanA1Curriculum,
+    curriculum: germanA1ProgramCurriculum,
+  },
+  {
+    id: 4,
+    language: "Allemand",
+    level: "A2",
+    title: "Allemand intermédiaire – Niveau A2",
+    progress: 0,
+    lessons: 6,
+    color: "#16847a",
+    documents: [
+      { title: "Fiches de vocabulaire A2", type: "Vocabulaire", summary: "Vêtements, santé, travail, logement, médias et voyages." },
+      { title: "Récapitulatif de grammaire A2", type: "Grammaire", summary: "Adjectifs, comparatif, verbes modaux, subordonnées, prépositions et propositions relatives." },
+      { title: "Portfolio A2", type: "Portfolio", summary: "Dialogues, courriers, formulaires et tâches de communication des six chapitres." },
+    ],
+    quiz: [
+      { question: "Comment dit-on « Je postule parce que le poste m’intéresse » ?", options: ["Ich bewerbe mich, weil die Stelle interessant ist.", "Ich bewerbe mich, weil ist die Stelle interessant.", "Ich bewerbe mich, die Stelle weil interessant ist."], answer: "Ich bewerbe mich, weil die Stelle interessant ist.", explanation: "Dans une subordonnée introduite par weil, le verbe conjugué se place à la fin." },
+      { question: "Complétez : Ich habe ein Zimmer, ___ sehr ruhig ist.", options: ["der", "die", "das"], answer: "das", explanation: "Zimmer est neutre : le pronom relatif au nominatif est das." },
+    ],
+    curriculum: germanA2Curriculum,
   },
 ];
 export function AppShell() {
@@ -280,7 +280,7 @@ export function AppShell() {
     [activeGermanQuizId, setActiveGermanQuizId] = useState<number | null>(null),
     [germanQuizAnswers, setGermanQuizAnswers] = useState<Record<number, string[]>>({}),
     [germanQuizResults, setGermanQuizResults] = useState<Record<number, boolean>>({}),
-    [completedGermanLessons, setCompletedGermanLessons] = useState<number[]>([]),
+    [completedGermanLessons, setCompletedGermanLessons] = useState<Record<number, number[]>>({}),
     [liveSessions, setLiveSessions] = useState<LiveSession[]>(defaultLiveSessions),
     [activeLive, setActiveLive] = useState<LiveSession>(defaultLiveSessions[0]);
   useEffect(() => {
@@ -291,7 +291,13 @@ export function AppShell() {
         setPaid(!!s.paid);
         setRegistered(s.registered || []);
         setSupport(!!s.support);
-        setCompletedGermanLessons(Array.isArray(s.completedGermanLessons) ? s.completedGermanLessons : []);
+        setCompletedGermanLessons(
+          Array.isArray(s.completedGermanLessons)
+            ? { 3: s.completedGermanLessons }
+            : s.completedGermanLessons && typeof s.completedGermanLessons === "object"
+              ? s.completedGermanLessons
+              : {},
+        );
       }
     } catch {}
   }, []);
@@ -372,17 +378,18 @@ export function AppShell() {
       [language],
     );
   const germanCurriculum = selected.curriculum;
+  const selectedCompletedLessons = completedGermanLessons[selected.id] ?? [];
   const activeGermanLesson = germanCurriculum?.lessons.find((lesson) => lesson.id === activeGermanLessonId);
   const activeGermanQuiz = germanCurriculum?.quizzes.find((quiz) => quiz.id === activeGermanQuizId);
   const totalCourseLessons = courses.reduce((total, course) => total + course.lessons, 0);
   const completedCourseLessons = courses.reduce(
-    (total, course) => total + (course.curriculum ? completedGermanLessons.length : Math.round((course.progress / 100) * course.lessons)),
+    (total, course) => total + (course.curriculum ? (completedGermanLessons[course.id] ?? []).length : Math.round((course.progress / 100) * course.lessons)),
     0,
   );
   const overallCourseProgress = Math.round((completedCourseLessons / totalCourseLessons) * 100);
   const card = (c: Course) => {
     const courseProgress = c.curriculum
-      ? Math.round((completedGermanLessons.length / c.curriculum.lessons.length) * 100)
+      ? Math.round(((completedGermanLessons[c.id] ?? []).length / c.curriculum.lessons.length) * 100)
       : c.progress;
 
     return (
@@ -501,6 +508,15 @@ export function AppShell() {
         <nav className="nav">
           <button className="btn ghost hideMobile" onClick={() => go("home")}>
             Accueil
+          </button>
+          <button className={`btn ghost hideMobile ${page === "pdg" ? "active" : ""}`} onClick={() => go("pdg")}>
+            PDG
+          </button>
+          <button className={`btn ghost hideMobile ${page === "programme-a1" ? "active" : ""}`} onClick={() => go("programme-a1")}>
+            Programme A1
+          </button>
+          <button className={`btn ghost hideMobile ${page === "programme-a2" ? "active" : ""}`} onClick={() => go("programme-a2")}>
+            Programme A2
           </button>
           {paid ? (
             <>
@@ -874,6 +890,86 @@ export function AppShell() {
             </div> */}
         </main>
         )}
+      {page === "pdg" && (
+        <main className="shell directorPage">
+          <section className="directorProfile">
+            <div className="directorPortrait">
+              <Image
+                src="/logo/DG2.png"
+                alt="Portrait d’Alassana Mara, directeur général"
+                width={900}
+                height={1230}
+                priority
+                sizes="(max-width: 700px) 100vw, 38vw"
+              />
+            </div>
+            <div className="directorIntro">
+              <span className="liveInfoLabel">MARA-SPRACH TEAM</span>
+              <h1>{directorBiography.name}</h1>
+              <p>{directorBiography.role}</p>
+              <div className="directorIntroRule" />
+              <p className="muted">« La réussite n’est pas une course. C’est une construction. »</p>
+            </div>
+          </section>
+          <article className="directorBiography">
+            {directorBiography.paragraphs.map((paragraph, index) => (
+              <p className={index === 2 || index === 15 || index === 24 || index === 27 ? "biographyEmphasis" : ""} key={`${index}-${paragraph.slice(0, 24)}`}>
+                {paragraph}
+              </p>
+            ))}
+          </article>
+        </main>
+      )}
+      {(page === "programme-a1" || page === "programme-a2") && (() => {
+        const program: GermanProgram = page === "programme-a1" ? germanA1Program : germanA2Program;
+        return (
+          <main className="shell germanProgramPage">
+            <header className={`programHero programHero${program.level}`}>
+              <div>
+                <span className="liveInfoLabel">ALLEMAND · NIVEAU {program.level}</span>
+                <h1>{program.title}</h1>
+                <p>{program.description}</p>
+                <span className="programSource">Programme de référence : {program.source}</span>
+              </div>
+              <div className="programChapterCount"><strong>{program.chapters.length}</strong><span>chapitres</span></div>
+            </header>
+            <section className="programChapterList" aria-label={`Chapitres du programme ${program.level}`}>
+              {program.chapters.map((chapter, index) => (
+                <article className="programChapter" key={chapter.title}>
+                  <span className="programChapterNumber">{String(index + 1).padStart(2, "0")}</span>
+                  <div className="programChapterBody">
+                    <h2>{chapter.title}</h2>
+                    <div className="programChapterColumns">
+                      <div><h3>Thèmes</h3><ul>{chapter.topics.map((topic) => <li key={topic}>{topic}</li>)}</ul></div>
+                      <div><h3>Grammaire</h3><ul>{chapter.grammar.map((rule) => <li key={rule}>{rule}</li>)}</ul></div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </section>
+            <section className="programMaterials">
+              <div>
+                <span className="liveInfoLabel">RESSOURCES PÉDAGOGIQUES</span>
+                <h2>Supports du parcours</h2>
+                <p>Les leçons, dialogues, tâches portfolio et exercices sont organisés chapitre par chapitre dans le cours correspondant.</p>
+              </div>
+              <ul>{program.learningMaterials.map((material) => <li key={material}>{material}</li>)}</ul>
+            </section>
+            <div className="programActions">
+              <button className="btn primary" onClick={() => {
+                const course = courses.find((item) => item.language === "Allemand" && item.level === program.level);
+                if (!course) return;
+                setSelected(course);
+                setActiveGermanLessonId(1);
+                setActiveGermanQuizId(null);
+                setActiveCourseTab("learning");
+                go("course");
+              }}>Ouvrir le cours {program.level}</button>
+              <button className="btn ghost" onClick={() => go("courses")}>Voir le catalogue</button>
+            </div>
+          </main>
+        );
+      })()}
       {page === "signup" && (
         <main className="shell">
           <form
@@ -1035,7 +1131,7 @@ export function AppShell() {
                   <div className="documentList">
                     {courseDocuments.filter((document) => document.course_key === String(selected.id)).map((document) => (
                       <article className="documentRow" key={document.id}>
-                        <div className="documentFileIcon" aria-hidden="true">PDF</div>
+                        <div className="documentFileIcon" aria-hidden="true">{document.file_name.split(".").pop()?.toUpperCase() ?? "DOC"}</div>
                         <div className="documentFileInfo">
                           <strong>{document.title}</strong>
                           <span>{document.file_name} · {(document.size_bytes / 1024 / 1024).toFixed(1)} Mo</span>
@@ -1138,8 +1234,8 @@ export function AppShell() {
                       <input id="course-document-title" value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} required maxLength={120} placeholder="Ex. Fiche de vocabulaire du module 1" />
                     </div>
                     <div className="field">
-                      <label htmlFor="course-document-file">Fichier (PDF, Word, PowerPoint, Excel ou texte · 15 Mo maximum)</label>
-                      <input id="course-document-file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)} required />
+                      <label htmlFor="course-document-file">Fichier (PDF, Office, TXT, MP3, M4A, WAV, OGG, MP4 ou WebM · 15 Mo maximum)</label>
+                      <input id="course-document-file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.mp3,.m4a,.wav,.ogg,.mp4,.webm" onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)} required />
                     </div>
                     <div className="field">
                       <label htmlFor="course-document-token">Code de dépôt administrateur</label>
@@ -1205,9 +1301,9 @@ export function AppShell() {
             <section className="courseCurriculumCard">
               <header className="curriculumHeading">
                 <div>
-                  <span className="liveInfoLabel">PARCOURS DE FORMATION · A1</span>
-                  <h2>Allemand débutant</h2>
-                  <p className="muted">Un parcours progressif pour comprendre les bases et commencer à communiquer.</p>
+                  <span className="liveInfoLabel">PARCOURS DE FORMATION · {germanCurriculum.level}</span>
+                  <h2>{selected.title}</h2>
+                  <p className="muted">Parcours aligné sur {germanCurriculum.source}.</p>
                 </div>
                 <div className="curriculumStats">
                   <strong>{germanCurriculum.modules.length}</strong><span>modules</span>
@@ -1218,10 +1314,10 @@ export function AppShell() {
               <div className="curriculumProgress">
                 <div className="curriculumProgressLabel">
                   <span>Progression des leçons</span>
-                  <strong>{completedGermanLessons.length} / {germanCurriculum.lessons.length} terminées</strong>
+                  <strong>{selectedCompletedLessons.length} / {germanCurriculum.lessons.length} terminées</strong>
                 </div>
-                <div className="progress" aria-label={`${Math.round((completedGermanLessons.length / germanCurriculum.lessons.length) * 100)} % des leçons terminées`}>
-                  <span style={{ width: `${(completedGermanLessons.length / germanCurriculum.lessons.length) * 100}%` }} />
+                <div className="progress" aria-label={`${Math.round((selectedCompletedLessons.length / germanCurriculum.lessons.length) * 100)} % des leçons terminées`}>
+                  <span style={{ width: `${(selectedCompletedLessons.length / germanCurriculum.lessons.length) * 100}%` }} />
                 </div>
               </div>
               <div className="courseLearningLayout">
@@ -1253,7 +1349,7 @@ export function AppShell() {
                             >
                               <span className="curriculumItemNumber">{item.type === "lesson" ? String(item.id).padStart(2, "0") : "Q"}</span>
                               <span className="curriculumItemText">{item.type === "lesson" ? lesson?.title : quiz?.title}</span>
-                              {item.type === "lesson" && completedGermanLessons.includes(item.id) && <span className="lessonCompleteMark" aria-label="Leçon terminée">✓</span>}
+                              {item.type === "lesson" && selectedCompletedLessons.includes(item.id) && <span className="lessonCompleteMark" aria-label="Leçon terminée">✓</span>}
                               {item.type === "quiz" && <span className="curriculumItemType">{quiz?.mode === "multiple" ? "Multi" : quiz?.mode === "boolean" ? "Vrai/Faux" : "Quiz"}</span>}
                               <span className="srOnly">Étape {index + 1}</span>
                             </button>
@@ -1368,15 +1464,43 @@ export function AppShell() {
                           ))}
                         </div>
                       </section>
+                      <section className="lessonSection">
+                        <h3>Récapitulatif de grammaire</h3>
+                        <ul className="grammarSummaryList">
+                          {activeGermanLesson.grammarSummary.map((rule) => <li key={rule}>{rule}</li>)}
+                        </ul>
+                      </section>
+                      <section className="lessonSection">
+                        <h3>Mini-dialogue · compréhension et jeu de rôle</h3>
+                        <div className="lessonDialogue">
+                          {activeGermanLesson.dialogue.map((line, index) => (
+                            <div className="lessonDialogueLine" key={`${line.speaker}-${index}`}>
+                              <span>{line.speaker}</span>
+                              <div><strong lang="de">{line.german}</strong><small>{line.french}</small></div>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="lessonMediaNote">Piste audio et vidéo du dialogue : fichier à ajouter aux documents du cours.</p>
+                      </section>
+                      <section className="lessonSection lessonPortfolio">
+                        <span className="liveInfoLabel">PORTFOLIO · À CONSERVER</span>
+                        <h3>Production personnelle</h3>
+                        <p>{activeGermanLesson.portfolioTask}</p>
+                      </section>
                       <footer className="lessonFooter">
-                        <span>{completedGermanLessons.includes(activeGermanLesson.id) ? "Leçon terminée" : "Prenez le temps de répéter les exemples à voix haute."}</span>
+                        <span>{selectedCompletedLessons.includes(activeGermanLesson.id) ? "Leçon terminée" : "Prenez le temps de répéter les exemples à voix haute."}</span>
                         <button
                           type="button"
-                          className={`btn ${completedGermanLessons.includes(activeGermanLesson.id) ? "secondary" : "primary"}`}
-                          onClick={() => setCompletedGermanLessons((completed) => completed.includes(activeGermanLesson.id) ? completed : [...completed, activeGermanLesson.id])}
-                          disabled={completedGermanLessons.includes(activeGermanLesson.id)}
+                          className={`btn ${selectedCompletedLessons.includes(activeGermanLesson.id) ? "secondary" : "primary"}`}
+                          onClick={() => setCompletedGermanLessons((completed) => ({
+                            ...completed,
+                            [selected.id]: (completed[selected.id] ?? []).includes(activeGermanLesson.id)
+                              ? completed[selected.id]
+                              : [...(completed[selected.id] ?? []), activeGermanLesson.id],
+                          }))}
+                          disabled={selectedCompletedLessons.includes(activeGermanLesson.id)}
                         >
-                          {completedGermanLessons.includes(activeGermanLesson.id) ? "Leçon validée" : "Terminer cette leçon"}
+                          {selectedCompletedLessons.includes(activeGermanLesson.id) ? "Leçon validée" : "Terminer cette leçon"}
                         </button>
                       </footer>
                     </article>

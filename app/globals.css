@@ -71,6 +71,198 @@ select {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.nav .btn.active {
+  border-color: #176b60;
+  background: #e8f3f0;
+  color: #135e54;
+}
+.directorPage,
+.germanProgramPage {
+  max-width: 1120px;
+}
+.directorProfile {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  min-height: 430px;
+  overflow: hidden;
+  border: 1px solid #e1e8e9;
+  border-radius: 14px;
+  background: #fff;
+}
+.directorPortrait {
+  min-height: 430px;
+  background: #e8eceb;
+}
+.directorPortrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 28%;
+}
+.directorIntro {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: clamp(28px, 5vw, 64px);
+}
+.directorIntro h1 {
+  margin: 12px 0 8px;
+  font-size: 42px;
+  line-height: 1.1;
+}
+.directorIntro > p:first-of-type {
+  max-width: 490px;
+  margin: 0;
+  color: #46545e;
+  font-size: 18px;
+  line-height: 1.55;
+}
+.directorIntroRule {
+  width: 54px;
+  height: 3px;
+  margin: 25px 0 14px;
+  background: #28796c;
+}
+.directorBiography {
+  max-width: 760px;
+  margin: 48px auto 0;
+}
+.directorBiography p {
+  margin: 0 0 20px;
+  color: #394851;
+  font-size: 16px;
+  line-height: 1.85;
+}
+.directorBiography .biographyEmphasis {
+  margin: 30px 0;
+  padding: 15px 0 15px 20px;
+  border-left: 3px solid #28796c;
+  color: #174d46;
+  font-size: 19px;
+  font-weight: 750;
+}
+.programHero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 32px;
+  border: 1px solid #dce7e5;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #edf6f3, #fff 72%);
+}
+.programHeroA2 {
+  border-color: #dce5ec;
+  background: linear-gradient(120deg, #edf3f7, #fff 72%);
+}
+.programHero h1 {
+  margin: 9px 0 7px;
+  font-size: 32px;
+}
+.programHero p {
+  max-width: 680px;
+  margin: 0 0 12px;
+  color: #52616b;
+  line-height: 1.6;
+}
+.programSource {
+  color: #68767d;
+  font-size: 12px;
+}
+.programChapterCount {
+  display: grid;
+  min-width: 94px;
+  padding: 13px;
+  border: 1px solid #cfdfdb;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.78);
+  text-align: center;
+}
+.programChapterCount strong {
+  color: #176b60;
+  font-size: 27px;
+}
+.programChapterCount span {
+  color: #5e6c72;
+  font-size: 12px;
+}
+.programChapterList {
+  display: grid;
+  margin-top: 18px;
+  border-top: 1px solid #dfe7e8;
+}
+.programChapter {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 14px;
+  padding: 22px 8px;
+  border-bottom: 1px solid #dfe7e8;
+}
+.programChapterNumber {
+  color: #738087;
+  font-size: 18px;
+  font-weight: 800;
+}
+.programChapterBody h2 {
+  margin: 0 0 12px;
+  font-size: 19px;
+}
+.programChapterColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.programChapterColumns h3 {
+  margin: 0 0 6px;
+  color: #176b60;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.programChapterColumns ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 17px;
+  color: #4f5e66;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.programMaterials {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 22px;
+  margin-top: 24px;
+  padding: 23px;
+  border: 1px solid #e0e8e8;
+  border-radius: 10px;
+  background: #fff;
+}
+.programMaterials h2 {
+  margin: 7px 0;
+  font-size: 20px;
+}
+.programMaterials p {
+  margin: 0;
+  color: #637078;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.programMaterials ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: #40515a;
+  line-height: 1.5;
+}
+.programActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
 .btn {
   border: 0;
   border-radius: 12px;
@@ -684,6 +876,73 @@ select {
 .vocabularyRow small,
 .lessonExample small {
   color: #667780;
+}
+.grammarSummaryList {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.grammarSummaryList li {
+  padding: 11px 13px;
+  border-left: 3px solid #4d9b8c;
+  background: #f3f8f6;
+  color: #36524c;
+  line-height: 1.55;
+}
+.lessonDialogue {
+  display: grid;
+  gap: 8px;
+}
+.lessonDialogueLine {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid #e4eaeb;
+  border-radius: 7px;
+  background: #fbfcfc;
+}
+.lessonDialogueLine > span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e8f3f0;
+  color: #176b60;
+  font-size: 12px;
+  font-weight: 800;
+}
+.lessonDialogueLine div {
+  display: grid;
+  gap: 4px;
+}
+.lessonDialogueLine strong {
+  color: #174d46;
+}
+.lessonDialogueLine small {
+  color: #66747a;
+  font-size: 13px;
+}
+.lessonMediaNote {
+  margin: 9px 0 0 !important;
+  color: #758188 !important;
+  font-size: 12px;
+}
+.lessonPortfolio {
+  padding: 16px 18px;
+  border: 1px solid #dce7e5;
+  border-radius: 8px;
+  background: #f7faf9;
+}
+.lessonPortfolio h3 {
+  margin-top: 5px;
+}
+.lessonPortfolio p {
+  margin-bottom: 0;
 }
 .lessonExamples {
   display: grid;
@@ -1529,6 +1788,49 @@ select {
 @media (max-width: 600px) {
   .shell {
     padding: 20px 16px;
+  }
+
+  .directorProfile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .directorPortrait {
+    min-height: 0;
+    height: 390px;
+  }
+
+  .directorIntro {
+    padding: 26px 20px;
+  }
+
+  .directorIntro h1 {
+    font-size: 34px;
+  }
+
+  .directorBiography {
+    margin-top: 30px;
+  }
+
+  .programHero {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 22px 18px;
+  }
+
+  .programHero h1 {
+    font-size: 27px;
+  }
+
+  .programChapter {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 8px;
+    padding: 18px 0;
+  }
+
+  .programChapterColumns,
+  .programMaterials {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
   }
 
   .topbar {

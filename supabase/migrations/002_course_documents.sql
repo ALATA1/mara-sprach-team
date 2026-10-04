@@ -37,7 +37,13 @@ values (
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain'
+    'text/plain',
+    'audio/mpeg',
+    'audio/mp4',
+    'audio/wav',
+    'audio/ogg',
+    'video/mp4',
+    'video/webm'
   ]
 )
 on conflict (id) do update set
