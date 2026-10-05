@@ -13,6 +13,29 @@
 			],
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Ajouter le compte enseignant Alassana sur ALATA1",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"update-password.js",
+				"--create-missing"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Ajouter le compte enseignant Alassana en production",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"update-password.js",
+				"--production",
+				"--create-missing"
+			],
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

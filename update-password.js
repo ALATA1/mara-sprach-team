@@ -23,6 +23,7 @@ const ACCOUNTS = [
   { email: 'ibrahima.alata@conserto.pro', label: 'Admin', firstName: 'Ibrahima', lastName: 'Alata', role: 'admin', membershipStatus: 'pending', amountCents: 1000 },
   { email: 'ibrahima.alata@gmail.com', label: 'Enseignant', firstName: 'Ibrahima', lastName: 'Alata', role: 'teacher', membershipStatus: 'pending', amountCents: 1000 },
   { email: 'celidoura@gmail.com', label: 'Etudiant', firstName: 'Celidoura', lastName: '', role: 'beneficiary', membershipStatus: 'active', amountCents: 0 },
+  { email: 'alassanamara115@gmail.com', label: 'Enseignant', firstName: 'Alassana', lastName: 'Mara', role: 'teacher', membershipStatus: 'pending', amountCents: 1000 },
 ]
 
 loadEnvConfig(process.cwd())
@@ -98,11 +99,8 @@ async function main() {
   if (!projectUrl.includes(target.ref)) {
     throw new Error(`Arrêt : l’URL ne correspond pas au projet ${target.label}. Aucun compte n’a été modifié.`)
   }
-  if (createMissing && !isProduction) {
-    throw new Error('L’option --create-missing est réservée à la production.')
-  }
-  if (isProduction && (!updateAll || !createMissing)) {
-    throw new Error('Pour créer les comptes de production, utilise --production --all --create-missing.')
+  if (isProduction && !createMissing) {
+    throw new Error('Pour créer un compte de production, utilise --production --create-missing.')
   }
 
   const supabase = createClient(projectUrl, adminKey, {
@@ -117,7 +115,7 @@ async function main() {
     ACCOUNTS.forEach((account, index) => {
       console.log(`${index + 1}. ${account.label} — ${account.email}`)
     })
-    const selection = await ask('Compte à modifier (1-3) : ')
+    const selection = await ask(`Compte à modifier (1-${ACCOUNTS.length}) : `)
     const account = ACCOUNTS[Number(selection) - 1]
     if (!account) throw new Error('Choix invalide. Aucun compte n’a été modifié.')
     selectedAccounts = [account]
