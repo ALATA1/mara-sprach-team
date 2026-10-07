@@ -15,7 +15,11 @@ type JitsiApiConstructor = new (
     width: string;
     height: string;
     lang: string;
-    configOverwrite: { enableClosePage: boolean };
+    configOverwrite: {
+      enableClosePage: boolean;
+      disableDeepLinking: boolean;
+      prejoinConfig: { enabled: boolean };
+    };
     userInfo: { displayName: string };
   },
 ) => JitsiApi;
@@ -76,7 +80,11 @@ export function JitsiRoom({ roomUrl, displayName, onJoined, onReadyToClose }: Ji
         width: "100%",
         height: "100%",
         lang: "fr",
-        configOverwrite: { enableClosePage: false },
+        configOverwrite: {
+          enableClosePage: false,
+          disableDeepLinking: true,
+          prejoinConfig: { enabled: true },
+        },
         userInfo: { displayName },
       });
       apiRef.current = api;

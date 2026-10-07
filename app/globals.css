@@ -1391,33 +1391,28 @@ select {
 .liveRoomPage {
   margin-top: 18px;
 }
-.jitsiRoom,
-.dailyRoom {
+.jitsiRoom {
   min-width: 0;
   overflow: hidden;
   border: 1px solid #d8e0e2;
   border-radius: 12px;
   background: #101820;
 }
-.jitsiRoomFrame,
-.dailyRoomFrame {
+.jitsiRoomFrame {
   width: 100%;
   height: min(76vh, 780px);
   min-height: 520px;
 }
-.jitsiRoomFrame iframe,
-.dailyRoomFrame iframe {
+.jitsiRoomFrame iframe {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
 }
-.jitsiRoomFrame.hidden,
-.dailyRoomFrame.hidden {
+.jitsiRoomFrame.hidden {
   display: none;
 }
-.jitsiRoomMessage,
-.dailyRoomMessage {
+.jitsiRoomMessage {
   display: grid;
   min-height: 220px;
   justify-items: center;
@@ -1428,17 +1423,22 @@ select {
   text-align: center;
   background: #f7f9fa;
 }
-.jitsiRoomMessage p,
-.dailyRoomMessage p {
+.jitsiRoomMessage p {
   max-width: 520px;
   margin: 0;
   line-height: 1.6;
 }
-.dailyRoomStatus {
-  margin: 0;
-  padding: 12px 16px;
-  color: #334155;
-  background: #f7f9fa;
+.liveJoinGuidance {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-left: 4px solid #2457d6;
+  border-radius: 8px;
+  color: #172554;
+  background: #f3f6ff;
+}
+.liveJoinGuidance p {
+  margin: 6px 0 0;
+  line-height: 1.55;
 }
 .liveHeader {
   display: flex;
@@ -1879,8 +1879,7 @@ select {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .jitsiRoomFrame,
-  .dailyRoomFrame {
+  .jitsiRoomFrame {
     height: 68vh;
     min-height: 460px;
   }

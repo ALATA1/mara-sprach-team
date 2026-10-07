@@ -33,16 +33,11 @@ Une fois l'application déployée en HTTPS, elle peut être ajoutée à l'écran
 
 Les documents de cours publiés sont téléchargeables par les visiteurs. Le dépôt est limité à l'API serveur avec `SUPABASE_SERVICE_ROLE_KEY` et `COURSE_DOCUMENTS_ADMIN_TOKEN`; les accès d'écriture anonymes au bucket ne sont pas autorisés. Les fichiers acceptés sont PDF, Word, PowerPoint, Excel, TXT, MP3, M4A, WAV, OGG, MP4 et WebM, jusqu'à 15 Mo.
 
-## Sessions vidéo Daily
+## Sessions vidéo Jitsi
 
-Les salles Daily Prebuilt s'affichent directement dans Mara-Sprach Team. Pour les activer :
+Les cours Jitsi sont intégrés directement dans Mara-Sprach Team : les étudiants rejoignent la salle depuis le site, sans compte Jitsi ni redirection vers l'application Jitsi. À l'écran de préconnexion, ils peuvent vérifier leur micro et leur caméra, autoriser leur navigateur à les utiliser, puis rejoindre le cours.
 
-1. Créer un compte Daily et des salles **privées** dans le tableau de bord Daily.
-2. Copier la clé API Daily dans `DAILY_API_KEY` et le domaine du compte (par exemple `votre-espace.daily.co`) dans `DAILY_DOMAIN`, dans `.env.local` en développement et dans les variables d'environnement Vercel en production. Ces deux variables restent côté serveur.
-3. Dans Supabase, renseigner pour chaque session Daily son URL exacte dans `live_sessions.meeting_url`, au format `https://votre-espace.daily.co/nom-de-salle`.
-4. Redéployer l'application après avoir ajouté les variables Vercel.
-
-L'API Mara-Sprach vérifie la connexion, limite chaque jeton à une salle planifiée et le fait expirer après deux heures. Les profils enseignant et administrateur reçoivent les commandes de propriétaire de salle. Les sessions encore configurées avec Jitsi continuent d'utiliser Jitsi.
+Les liens de salle des sessions sont stockés dans `live_sessions.meeting_url`. Le service public `meet.jit.si` est gratuit, mais il ne fournit pas de garantie de disponibilité ou de qualité de service. Une instance Jitsi dédiée nécessite un serveur et de la bande passante.
 
 ## Stripe
 
