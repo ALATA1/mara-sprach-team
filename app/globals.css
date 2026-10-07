@@ -1381,6 +1381,31 @@ select {
   padding: 14px 0;
   border-bottom: 1px solid #edf0f4;
 }
+.liveLinkEditor {
+  display: grid;
+  gap: 8px;
+  max-width: 640px;
+  margin-top: 12px;
+}
+.liveLinkEditor label {
+  color: #344054;
+  font-size: 14px;
+  font-weight: 700;
+}
+.liveLinkEditorControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.liveLinkEditorControls input {
+  min-width: 0;
+  flex: 1;
+}
+.liveLinkError {
+  margin: 0;
+  color: #b42318;
+  font-size: 14px;
+}
 .livePanel {
   background: #fff;
   border: 1px solid #e8eaf0;
@@ -1438,6 +1463,20 @@ select {
 }
 .liveJoinGuidance p {
   margin: 6px 0 0;
+  line-height: 1.55;
+}
+.teamsLiveJoin {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid #d8e0e2;
+  border-radius: 12px;
+  background: #fff;
+}
+.teamsLiveJoin p {
+  margin: 0;
+  color: #526071;
   line-height: 1.55;
 }
 .liveHeader {
@@ -1862,6 +1901,16 @@ select {
   }
 }
 @media (max-width: 600px) {
+  .live {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .liveLinkEditorControls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .mainVideoCard {
     min-height: 280px;
   }

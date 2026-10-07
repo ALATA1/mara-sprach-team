@@ -72,6 +72,24 @@ const isValidGoogleMeetUrl = (value?: string) => {
   return /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/i.test(path);
 };
 
+const isValidTeamsUrl = (value?: string) => {
+  if (!value) return false;
+  try {
+    const url = new URL(value.trim());
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      (url.hostname === "teams.microsoft.com" || url.hostname === "teams.live.com")
+    );
+  } catch {
+    return false;
+  }
+};
+
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
 const isValidJitsiUrl = (value?: string) => {
   if (!value) return false;
   const trimmed = value.trim();
@@ -81,7 +99,7 @@ const isValidJitsiUrl = (value?: string) => {
 const normalizeMeetingUrl = (value?: string) => {
   if (typeof value !== "string") return JITSI_LIVE_URLS[0];
   const trimmed = value.trim();
-  if (isValidGoogleMeetUrl(trimmed) || isValidJitsiUrl(trimmed)) {
+  if (isValidGoogleMeetUrl(trimmed) || isValidTeamsUrl(trimmed) || isValidJitsiUrl(trimmed)) {
     return trimmed;
   }
   return JITSI_LIVE_URLS[0];
@@ -311,6 +329,9 @@ export function AppShell() {
     [contactSubmitting, setContactSubmitting] = useState(false),
     [contactStatus, setContactStatus] = useState<{ type: "success" | "error"; message: string } | null>(null),
     [liveJoined, setLiveJoined] = useState(false),
+    [liveLinkDrafts, setLiveLinkDrafts] = useState<Record<string, string>>({}),
+    [liveLinkSavingId, setLiveLinkSavingId] = useState<string | null>(null),
+    [liveLinkErrors, setLiveLinkErrors] = useState<Record<string, string>>({}),
     [activeCourseTab, setActiveCourseTab] = useState<"learning" | "documents">("learning"),
     [videoCourses, setVideoCourses] = useState<VideoCourse[]>([]),
     [videoCoursesLoading, setVideoCoursesLoading] = useState(false),
@@ -669,6 +690,8 @@ export function AppShell() {
   const liveRows = liveSessions.map((l) => {
     const id = Number(l.id) || String(l.id);
     const on = registered.includes(Number(id) || Number(l.id));
+    const sessionKey = String(l.id);
+    const meetingUrlDraft = liveLinkDrafts[sessionKey] ?? (isValidTeamsUrl(l.roomUrl) ? l.roomUrl : "");
     return (
       <div className="live" key={String(l.id)}>
         <div>
@@ -676,6 +699,69 @@ export function AppShell() {
           <div className="muted">
             {l.date} • {l.teacher}
           </div>
+          {(user?.role === "teacher" || user?.role === "admin") && (
+            <form
+              className="liveLinkEditor"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                if (!isValidTeamsUrl(meetingUrlDraft)) {
+                  setLiveLinkErrors((errors) => ({ ...errors, [sessionKey]: "Collez un lien Microsoft Teams valide." }));
+                  return;
+                }
+                if (!isUuid(sessionKey)) {
+                  setLiveLinkErrors((errors) => ({
+                    ...errors,
+                    [sessionKey]: "Cette séance de démonstration n’est pas enregistrée dans Supabase.",
+                  }));
+                  return;
+                }
+
+                setLiveLinkSavingId(sessionKey);
+                setLiveLinkErrors((errors) => ({ ...errors, [sessionKey]: "" }));
+                try {
+                  const response = await fetch("/api/live/meeting-link", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sessionId: sessionKey, meetingUrl: meetingUrlDraft }),
+                  });
+                  const result: { error?: string; session?: { meeting_url?: string } } = await response.json();
+                  if (!response.ok) throw new Error(result.error || "Impossible d’enregistrer le lien Teams.");
+                  if (!result.session?.meeting_url) throw new Error("Supabase n’a pas confirmé l’enregistrement du lien.");
+
+                  const savedUrl = result.session.meeting_url;
+                  setLiveSessions((sessions) => sessions.map((session) =>
+                    String(session.id) === sessionKey ? { ...session, roomUrl: savedUrl } : session,
+                  ));
+                  setActiveLive((session) =>
+                    String(session.id) === sessionKey ? { ...session, roomUrl: savedUrl } : session,
+                  );
+                  setLiveLinkDrafts((drafts) => ({ ...drafts, [sessionKey]: savedUrl }));
+                  notify("Lien Teams enregistré pour cette séance");
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : "Une erreur inattendue a empêché l’enregistrement.";
+                  setLiveLinkErrors((errors) => ({ ...errors, [sessionKey]: message }));
+                } finally {
+                  setLiveLinkSavingId(null);
+                }
+              }}
+            >
+              <label htmlFor={`teams-link-${sessionKey}`}>Lien Teams de cette séance</label>
+              <div className="liveLinkEditorControls">
+                <input
+                  id={`teams-link-${sessionKey}`}
+                  type="url"
+                  value={meetingUrlDraft}
+                  onChange={(event) => setLiveLinkDrafts((drafts) => ({ ...drafts, [sessionKey]: event.target.value }))}
+                  placeholder="https://teams.live.com/meet/…"
+                  required
+                />
+                <button type="submit" className="btn secondary" disabled={liveLinkSavingId === sessionKey}>
+                  {liveLinkSavingId === sessionKey ? "Enregistrement…" : "Enregistrer"}
+                </button>
+              </div>
+              {liveLinkErrors[sessionKey] && <p className="liveLinkError" role="alert">{liveLinkErrors[sessionKey]}</p>}
+            </form>
+          )}
         </div>
         <div className="liveActionsRow">
           <button
@@ -2032,20 +2118,46 @@ export function AppShell() {
               </div>
 
               <div className="liveJoinGuidance">
-                <strong>Votre cours s’ouvre ici, dans Mara-Sprach.</strong>
-                <p>
-                  Dans l’aperçu vidéo, vérifiez le micro et la caméra, autorisez-les si votre navigateur le demande,
-                  puis cliquez sur « Rejoindre ». Une bonne lumière et une connexion Wi-Fi stable aident à obtenir
-                  une image plus nette.
-                </p>
+                {isValidTeamsUrl(activeLive?.roomUrl) ? (
+                  <>
+                    <strong>Votre cours se déroule sur Microsoft Teams.</strong>
+                    <p>
+                      Ouvrez la réunion avec le bouton ci-dessous. Teams peut s’ouvrir dans l’application ou le navigateur;
+                      autorisez le micro et la caméra si votre téléphone le demande. Après le cours, revenez à Mara-Sprach.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <strong>Votre cours s’ouvre ici, dans Mara-Sprach.</strong>
+                    <p>
+                      Dans l’aperçu vidéo, vérifiez le micro et la caméra, autorisez-les si votre navigateur le demande,
+                      puis cliquez sur « Rejoindre ». Une bonne lumière et une connexion Wi-Fi stable aident à obtenir
+                      une image plus nette.
+                    </p>
+                  </>
+                )}
               </div>
 
-              <JitsiRoom
-                roomUrl={activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
-                displayName={user?.firstName || "Participant"}
-                onJoined={() => setLiveJoined(true)}
-                onReadyToClose={leaveLiveRoom}
-              />
+              {isValidTeamsUrl(activeLive?.roomUrl) ? (
+                <section className="teamsLiveJoin">
+                  <a
+                    className="btn primary"
+                    href={activeLive.roomUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Ouvrir la réunion Teams
+                  </a>
+                  <p>Si Teams vous le propose, choisissez « Continuer dans ce navigateur » pour rejoindre sans installer l’application.</p>
+                </section>
+              ) : (
+                <JitsiRoom
+                  roomUrl={activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
+                  displayName={user?.firstName || "Participant"}
+                  onJoined={() => setLiveJoined(true)}
+                  onReadyToClose={leaveLiveRoom}
+                />
+              )}
 
               <div className="liveActions">
                 <button type="button" className="btn secondary" onClick={leaveLiveRoom}>

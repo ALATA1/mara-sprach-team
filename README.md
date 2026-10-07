@@ -33,11 +33,17 @@ Une fois l'application déployée en HTTPS, elle peut être ajoutée à l'écran
 
 Les documents de cours publiés sont téléchargeables par les visiteurs. Le dépôt est limité à l'API serveur avec `SUPABASE_SERVICE_ROLE_KEY` et `COURSE_DOCUMENTS_ADMIN_TOKEN`; les accès d'écriture anonymes au bucket ne sont pas autorisés. Les fichiers acceptés sont PDF, Word, PowerPoint, Excel, TXT, MP3, M4A, WAV, OGG, MP4 et WebM, jusqu'à 15 Mo.
 
-## Sessions vidéo Jitsi
+## Sessions vidéo Jitsi et Microsoft Teams
 
-Les cours Jitsi sont intégrés directement dans Mara-Sprach Team : les étudiants rejoignent la salle depuis le site, sans compte Jitsi ni redirection vers l'application Jitsi. À l'écran de préconnexion, ils peuvent vérifier leur micro et leur caméra, autoriser leur navigateur à les utiliser, puis rejoindre le cours.
+Les liens de salle des sessions sont stockés dans `live_sessions.meeting_url`.
 
-Les liens de salle des sessions sont stockés dans `live_sessions.meeting_url`. Le service public `meet.jit.si` est gratuit, mais il ne fournit pas de garantie de disponibilité ou de qualité de service. Une instance Jitsi dédiée nécessite un serveur et de la bande passante.
+Pour une séance Teams, créez la réunion dans Teams puis copiez son lien. Dans Supabase, renseignez ce lien dans `meeting_url` pour la séance concernée. Les liens `teams.microsoft.com` et `teams.live.com` ouvrent la réunion Teams dans un nouvel onglet ou l'application Teams; l'appel vidéo n'est pas intégré dans la page Mara-Sprach. Les étudiants peuvent devoir choisir de continuer dans leur navigateur. Après la réunion, ils reviennent à Mara-Sprach.
+
+Un formateur ou administrateur connecté peut aussi coller le lien Teams dans le champ affiché sous la séance dans le calendrier LIVE, puis cliquer sur « Enregistrer ». L'enregistrement nécessite la configuration habituelle de `SUPABASE_SERVICE_ROLE_KEY` côté serveur Vercel.
+
+Pour tester, utilisez une séance et un lien Teams distinct par cours, puis vérifiez le parcours avec un participant sans compte Microsoft sur ordinateur, iPhone et Android. L'offre Teams Free limite les réunions de groupe à 60 minutes et 100 participants; prévoyez une durée inférieure à une heure pour garder une marge.
+
+Les anciennes séances avec un lien Jitsi continuent de s'afficher dans Mara-Sprach. Le service public `meet.jit.si` affiche toutefois un avertissement de démonstration pour l'intégration et n'est pas retenu pour les cours réguliers.
 
 ## Stripe
 
