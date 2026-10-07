@@ -12,6 +12,13 @@ npm run dev
 
 Ouvrir http://localhost:3000. Sans variables externes, l'application fonctionne en mode démonstration avec persistance locale.
 
+## Installation sur téléphone
+
+Une fois l'application déployée en HTTPS, elle peut être ajoutée à l'écran d'accueil :
+
+- **iPhone** : ouvrir le site dans Safari, toucher « Partager », puis « Sur l’écran d’accueil ».
+- **Android** : ouvrir le site dans Chrome, toucher le menu, puis « Installer l’application » ou « Ajouter à l’écran d’accueil ».
+
 ## Supabase
 
 1. Créer un projet Supabase.
