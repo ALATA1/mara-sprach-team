@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { JitsiRoom } from "@/components/jitsi-room";
+import { DailyRoom } from "@/components/daily-room";
 import { GermanPronunciationButton, GermanVoiceStatus } from "@/components/german-pronunciation";
 import { directorBiography } from "@/lib/content/director-biography";
 import {
@@ -78,13 +79,39 @@ const isValidJitsiUrl = (value?: string) => {
   return /^https:\/\/meet\.jit\.si\//i.test(trimmed);
 };
 
+const isValidDailyUrl = (value?: string) => {
+  if (!value) return false;
+  try {
+    const url = new URL(value.trim());
+    const roomPath = url.pathname.split("/").filter(Boolean);
+    return (
+      url.protocol === "https:" &&
+      url.hostname.endsWith(".daily.co") &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash &&
+      roomPath.length === 1 &&
+      /^[a-zA-Z0-9_-]+$/.test(roomPath[0])
+    );
+  } catch {
+    return false;
+  }
+};
+
 const normalizeMeetingUrl = (value?: string) => {
   if (typeof value !== "string") return JITSI_LIVE_URLS[0];
   const trimmed = value.trim();
-  if (isValidGoogleMeetUrl(trimmed) || isValidJitsiUrl(trimmed)) {
+  if (isValidGoogleMeetUrl(trimmed) || isValidJitsiUrl(trimmed) || isValidDailyUrl(trimmed)) {
     return trimmed;
   }
   return JITSI_LIVE_URLS[0];
+};
+
+const getLivePlatformName = (value?: string) => {
+  if (isValidDailyUrl(value)) return "Daily";
+  if (isValidGoogleMeetUrl(value)) return "Google Meet";
+  return "Jitsi Meet";
 };
 
 const defaultLiveSessions: LiveSession[] = [
@@ -2027,16 +2054,24 @@ export function AppShell() {
                 </div>
                 <div className="liveInfoItem">
                   <span className="liveInfoLabel">Plateforme</span>
-                  <strong>Jitsi Meet</strong>
+                  <strong>{getLivePlatformName(activeLive?.roomUrl)}</strong>
                 </div>
               </div>
 
-              <JitsiRoom
-                roomUrl={activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
-                displayName={user?.firstName || "Participant"}
-                onJoined={() => setLiveJoined(true)}
-                onReadyToClose={leaveLiveRoom}
-              />
+              {isValidDailyUrl(activeLive?.roomUrl) ? (
+                <DailyRoom
+                  roomUrl={activeLive.roomUrl}
+                  onJoined={() => setLiveJoined(true)}
+                  onReadyToClose={leaveLiveRoom}
+                />
+              ) : (
+                <JitsiRoom
+                  roomUrl={activeLive?.roomUrl || "https://meet.jit.si/MaraSprachA1Live"}
+                  displayName={user?.firstName || "Participant"}
+                  onJoined={() => setLiveJoined(true)}
+                  onReadyToClose={leaveLiveRoom}
+                />
+              )}
 
               <div className="liveActions">
                 <button type="button" className="btn secondary" onClick={leaveLiveRoom}>
