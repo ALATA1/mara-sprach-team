@@ -33,6 +33,7 @@ type Course = {
 
 type AccountRole = "beneficiary" | "teacher" | "volunteer" | "admin";
 type Account = { id: string; firstName: string; email: string; role: AccountRole };
+type ProtectedPage = "video-courses" | "live";
 type TeacherCourse = { id: string; title: string; language: string; level: string; published: boolean };
 
 type LiveSession = {
@@ -283,6 +284,7 @@ const courses: Course[] = [
 export function AppShell() {
   const [page, setPage] = useState("home"),
     [user, setUser] = useState<Account | null>(null),
+    [pendingProtectedPage, setPendingProtectedPage] = useState<ProtectedPage | null>(null),
     [paid, setPaid] = useState(false),
     [authLoading, setAuthLoading] = useState(true),
     [authBusy, setAuthBusy] = useState(false),
@@ -585,10 +587,20 @@ export function AppShell() {
     }
   };
   const go = (p: string) => {
+      if (p === "video-courses" || p === "live") {
+        if (authLoading) return;
+        if (!user) {
+          setPendingProtectedPage(p);
+          setPage("login");
+          scrollTo(0, 0);
+          return;
+        }
+      }
       setPage(p);
       scrollTo(0, 0);
     },
     startSignup = () => {
+      setPendingProtectedPage(null);
       setSignupAccountType("");
       setAuthError("");
       setAuthMessage("");
@@ -799,7 +811,13 @@ export function AppShell() {
         throw error;
       }
       if (!data.user) throw new Error("Supabase n’a renvoyé aucun utilisateur après la connexion.");
-      await loadAccount(data.user);
+      const destination = pendingProtectedPage;
+      await loadAccount(data.user, !destination);
+      if (destination) {
+        setPendingProtectedPage(null);
+        setPage(destination);
+        scrollTo(0, 0);
+      }
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "La connexion a échoué.");
     } finally {
@@ -1177,6 +1195,7 @@ export function AppShell() {
               <button
                 type="button"
                 className="mini miniButton"
+                disabled={authLoading}
                 onClick={() => {
                   go("video-courses");
                 }}
@@ -1188,6 +1207,7 @@ export function AppShell() {
               <button
                 type="button"
                 className="mini miniButton"
+                disabled={authLoading}
                 onClick={() => go("live")}
               >
                 <strong>🎥 {localizedText("Sessions LIVE", "Live-Unterricht", "Live sessions")}</strong>

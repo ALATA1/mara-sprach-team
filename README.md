@@ -48,3 +48,25 @@ Importer le dépôt dans Vercel, ajouter toutes les variables d'environnement n�
 ## Important
 
 Le projet est immédiatement testable en mode démo. Pour accepter de vrais paiements et de vraies données personnelles, appliquer toutes les migrations, configurer Supabase Auth et son fournisseur SMTP, configurer Stripe et son webhook, puis vérifier les politiques RLS, le RGPD, les mentions légales et les tests de sécurité avant la mise en production.
+
+
+
+## Installation application Adroid et Iphone : 
+
+C’est normal : Mara-Sprach Team n’apparaît pas comme une application dans Safari ou l’App Store. Pour l’instant, c’est le site web que l’on peut ajouter à l’écran d’accueil.
+
+Dans Safari sur votre iPhone, touchez la barre d’adresse, collez cette adresse complète, puis touchez Accéder :
+
+https://mara-sprach-team.vercel.app/
+
+Quand le site est ouvert, touchez Partager (le carré avec la flèche vers le haut), puis Ajouter à l’écran d’accueil. L’icône Mara-Sprach Team apparaîtra alors sur votre écran d’accueil.
+
+
+
+Sur Android :
+
+Ouvrez Chrome et saisissez l’adresse : mara-sprach-team.vercel.app.
+Touchez le menu ⋮ en haut à droite.
+Choisissez Installer l’application ou Ajouter à l’écran d’accueil — le libellé peut varier selon le téléphone.
+Confirmez. L’icône apparaîtra sur l’écran d’accueil.
+Si Chrome propose de créer un simple raccourci plutôt que d’installer l’application, choisissez Installer si cette option est disponible.
