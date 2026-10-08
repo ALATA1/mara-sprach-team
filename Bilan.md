@@ -25,7 +25,9 @@ Le code principal de l’interface se trouve dans [`components/app-shell.tsx`](.
 
 Une partie des inscriptions aux LIVE, de la progression et des demandes est conservée dans le navigateur (`localStorage`), et non comme donnée de compte synchronisée. Ces informations risquent donc de ne pas suivre l’étudiant sur un autre appareil ou navigateur.
 
-Les tables Supabase correspondantes existent en partie, mais les parcours de l’interface ne les utilisent pas encore systématiquement pour enregistrer et relire ces données.
+Les inscriptions aux LIVE sont maintenant enregistrées et relues dans Supabase pour le compte connecté. La capacité est vérifiée de façon atomique et l'inscription requiert un accès cours actif. Le code et la migration sont prêts localement, mais la migration doit être appliquée et le changement déployé avant de le tester en production.
+
+La progression des leçons et les derniers scores des quiz sont maintenant enregistrés dans Supabase sous le compte connecté. Les demandes d’accompagnement sont également créées et relues dans `support_requests`, au lieu d’afficher une confirmation locale. Ces changements nécessitent une migration locale/production et un déploiement avant d’être disponibles sur le site public.
 
 ### 2. Outils de gestion pour les formateurs
 
@@ -83,8 +85,8 @@ Créer une interface protégée pour gérer les cours et les séances, la liste 
 
 ### Priorité 4 — Compléter l’accompagnement et préparer la production
 
-Mettre en place le suivi des demandes d’accompagnement, finaliser les pages légales, vérifier les politiques Supabase, organiser les sauvegardes et tester les principaux parcours de paiement et de connexion.
+Le suivi des demandes d’accompagnement est maintenant enregistré par compte. Il reste à finaliser les pages légales, vérifier les politiques Supabase, organiser les sauvegardes et tester les principaux parcours de paiement et de connexion.
 
-## Conclusion
+#### Conclusion
 
 La priorité n’est pas d’ajouter beaucoup de nouvelles pages : c’est de rendre persistants les parcours existants et de permettre aux formateurs de gérer les cours et les séances sans manipuler directement Supabase. L’accès LIVE Teams doit d’abord être testé sur les téléphones avant d’être annoncé comme opérationnel.

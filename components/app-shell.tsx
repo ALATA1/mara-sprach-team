@@ -34,9 +34,16 @@ type Course = {
 
 type AccountRole = "beneficiary" | "teacher" | "volunteer" | "admin";
 type Account = { id: string; firstName: string; email: string; role: AccountRole };
-type ProtectedPage = "video-courses" | "live" | "courses" | "course" | "live-room";
+type ProtectedPage = "video-courses" | "live" | "courses" | "course" | "live-room" | "support";
 type TeacherCourse = { id: string; title: string; language: string; level: string; published: boolean };
 type BillingSubscription = { plan_id: CoursePlanId; status: string; cancel_at_period_end: boolean };
+type LearningRecord = {
+  course_key: string;
+  item_type: "lesson" | "quiz";
+  item_key: string;
+  score_percentage: number | null;
+};
+type SupportRequest = { id: string; type: string; subject: string; status: string; created_at: string };
 
 type LiveSession = {
   id: number | string;
@@ -319,8 +326,16 @@ export function AppShell() {
     [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]),
     [language, setLanguage] = useState("Tous"),
     [selected, setSelected] = useState(courses[0]),
-    [registered, setRegistered] = useState<number[]>([]),
-    [support, setSupport] = useState(false),
+    [registered, setRegistered] = useState<string[]>([]),
+    [liveRegistrationBusyId, setLiveRegistrationBusyId] = useState<string | null>(null),
+    [liveRegistrationErrors, setLiveRegistrationErrors] = useState<Record<string, string>>({}),
+    [supportRequests, setSupportRequests] = useState<SupportRequest[]>([]),
+    [supportSent, setSupportSent] = useState(false),
+    [supportType, setSupportType] = useState("Démarches administratives"),
+    [supportSubject, setSupportSubject] = useState(""),
+    [supportDescription, setSupportDescription] = useState(""),
+    [supportSubmitting, setSupportSubmitting] = useState(false),
+    [supportError, setSupportError] = useState(""),
     [toast, setToast] = useState(""),
     [photoOpen, setPhotoOpen] = useState(false),
     [logoOpen, setLogoOpen] = useState(false),
@@ -357,6 +372,9 @@ export function AppShell() {
     [activeGermanQuizId, setActiveGermanQuizId] = useState<number | null>(null),
     [germanQuizAnswers, setGermanQuizAnswers] = useState<Record<number, string[]>>({}),
     [germanQuizResults, setGermanQuizResults] = useState<Record<number, boolean>>({}),
+    [quizScores, setQuizScores] = useState<Record<string, number>>({}),
+    [learningSaveError, setLearningSaveError] = useState(""),
+    [learningSaveBusy, setLearningSaveBusy] = useState(false),
     [completedGermanLessons, setCompletedGermanLessons] = useState<Record<number, number[]>>({}),
     [liveSessions, setLiveSessions] = useState<LiveSession[]>(defaultLiveSessions),
     [activeLive, setActiveLive] = useState<LiveSession>(defaultLiveSessions[0]);
@@ -393,6 +411,61 @@ export function AppShell() {
         : null,
     );
     setPaid(hasAccess);
+    const [
+      { data: liveRegistrations, error: liveRegistrationsError },
+      { data: learningRecords, error: learningRecordsError },
+      { data: supportRows, error: supportRowsError },
+    ] = await Promise.all([
+      client.from("live_registrations").select("live_session_id").eq("user_id", supabaseUser.id),
+      client.from("student_learning_records")
+        .select("course_key, item_type, item_key, score_percentage")
+        .eq("user_id", supabaseUser.id),
+      client.from("support_requests").select("id, type, subject, status, created_at")
+        .eq("user_id", supabaseUser.id).order("created_at", { ascending: false }),
+    ]);
+    if (liveRegistrationsError) {
+      console.error("Unable to load LIVE registrations", liveRegistrationsError);
+      setLiveRegistrationErrors((errors) => ({
+        ...errors,
+        load: "Impossible de charger vos inscriptions LIVE.",
+      }));
+    } else {
+      setRegistered((liveRegistrations ?? []).map((registration) => registration.live_session_id));
+      setLiveRegistrationErrors({});
+    }
+    if (supportRowsError) {
+      console.error("Unable to load support requests", supportRowsError);
+      setSupportError("Impossible de charger vos demandes d’accompagnement.");
+    } else {
+      setSupportRequests((supportRows ?? []) as SupportRequest[]);
+      setSupportSent((supportRows ?? []).length > 0);
+      setSupportError("");
+    }
+    if (learningRecordsError) {
+      console.error("Unable to load student learning records", learningRecordsError);
+      setLearningSaveError("Impossible de charger votre progression enregistrée.");
+    } else {
+      const lessonRecords = (learningRecords ?? []).filter((record) => record.item_type === "lesson");
+      const completedByCourse: Record<number, number[]> = {};
+      for (const record of lessonRecords) {
+        const courseId = Number(record.course_key.replace(/^course-/, ""));
+        const lessonId = Number(record.item_key.replace(/^lesson-/, ""));
+        if (!Number.isInteger(courseId) || !Number.isInteger(lessonId)) continue;
+        completedByCourse[courseId] = [...(completedByCourse[courseId] ?? []), lessonId];
+      }
+      setCompletedGermanLessons(completedByCourse);
+      setQuizScores(Object.fromEntries(
+        (learningRecords ?? [])
+          .filter((record) => record.item_type === "quiz" && record.score_percentage !== null)
+          .map((record) => [`${record.course_key}:${record.item_key}`, record.score_percentage as number]),
+      ));
+      setGermanQuizResults(Object.fromEntries(
+        (learningRecords ?? [])
+          .filter((record) => record.item_type === "quiz" && record.item_key.startsWith("german-") && record.score_percentage !== null)
+          .map((record) => [Number(record.item_key.slice("german-".length)), record.score_percentage === 100]),
+      ));
+      setLearningSaveError("");
+    }
 
     if (role === "teacher") {
       const { data } = await client
@@ -420,24 +493,19 @@ export function AppShell() {
     setMembershipActive(false);
     setBillingSubscription(null);
     setTeacherCourses([]);
+    setRegistered([]);
+    setLiveRegistrationErrors({});
+    setSupportRequests([]);
+    setSupportSent(false);
+    setSupportError("");
+    setCompletedGermanLessons({});
+    setGermanQuizResults({});
+    setQuizScores({});
+    setLearningSaveError("");
     go("home");
   };
 
   useEffect(() => {
-    try {
-      const s = JSON.parse(localStorage.getItem("ensemble-v1") || "null");
-      if (s) {
-        setRegistered(s.registered || []);
-        setSupport(!!s.support);
-        setCompletedGermanLessons(
-          Array.isArray(s.completedGermanLessons)
-            ? { 3: s.completedGermanLessons }
-            : s.completedGermanLessons && typeof s.completedGermanLessons === "object"
-              ? s.completedGermanLessons
-              : {},
-        );
-      }
-    } catch {}
     const client = createClient();
     if (!client) {
       setAuthLoading(false);
@@ -466,6 +534,15 @@ export function AppShell() {
         setMembershipActive(false);
         setBillingSubscription(null);
         setTeacherCourses([]);
+        setRegistered([]);
+        setLiveRegistrationErrors({});
+        setSupportRequests([]);
+        setSupportSent(false);
+        setSupportError("");
+        setCompletedGermanLessons({});
+        setGermanQuizResults({});
+        setQuizScores({});
+        setLearningSaveError("");
       }
     });
 
@@ -579,10 +656,6 @@ export function AppShell() {
   }, [liveSessions]);
 
   useEffect(() => {
-    localStorage.setItem("ensemble-v1", JSON.stringify({ registered, support, completedGermanLessons }));
-  }, [registered, support, completedGermanLessons]);
-
-  useEffect(() => {
     try {
       const storedChoice = localStorage.getItem("mara-cookie-consent-v1");
       if (storedChoice === "all" || storedChoice === "necessary") setCookieChoice(storedChoice);
@@ -632,8 +705,52 @@ export function AppShell() {
       setContactSubmitting(false);
     }
   };
+  const saveLearningRecord = async (
+    courseKey: string,
+    itemType: "lesson" | "quiz",
+    itemKey: string,
+    scorePercentage?: number,
+  ) => {
+    const response = await fetch("/api/learning/records", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        courseKey,
+        itemType,
+        itemKey,
+        ...(scorePercentage === undefined ? {} : { scorePercentage }),
+      }),
+    });
+    const result: { error?: string } = await response.json();
+    if (!response.ok) throw new Error(result.error || "Impossible d’enregistrer votre progression.");
+  };
+  const submitSupportRequest = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSupportSubmitting(true);
+    setSupportError("");
+    try {
+      const response = await fetch("/api/support-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: supportType, subject: supportSubject, description: supportDescription }),
+      });
+      const result: { error?: string; request?: SupportRequest } = await response.json();
+      if (!response.ok) throw new Error(result.error || "Impossible d’envoyer votre demande.");
+      const savedRequest = result.request;
+      if (!savedRequest) throw new Error("La demande n’a pas été confirmée par le serveur.");
+      setSupportRequests((requests) => [savedRequest, ...requests]);
+      setSupportSent(true);
+      setSupportSubject("");
+      setSupportDescription("");
+      notify("Demande enregistrée");
+    } catch (error) {
+      setSupportError(error instanceof Error ? error.message : "Impossible d’envoyer votre demande.");
+    } finally {
+      setSupportSubmitting(false);
+    }
+  };
   const go = (p: string) => {
-      const protectedPage = (["video-courses", "live", "courses", "course", "live-room"] as const)
+      const protectedPage = (["video-courses", "live", "courses", "course", "live-room", "support"] as const)
         .find((route) => route === p);
       if (protectedPage) {
         if (authLoading) return;
@@ -643,7 +760,7 @@ export function AppShell() {
           scrollTo(0, 0);
           return;
         }
-        if (!paid && user.role !== "teacher" && user.role !== "admin") {
+        if (protectedPage !== "support" && !paid && user.role !== "teacher" && user.role !== "admin") {
           setAuthMessage("Un abonnement mensuel actif est nécessaire pour accéder aux cours et aux LIVE.");
           setPage("payment");
           scrollTo(0, 0);
@@ -735,9 +852,8 @@ export function AppShell() {
     );
   };
   const liveRows = liveSessions.map((l) => {
-    const id = Number(l.id) || String(l.id);
-    const on = registered.includes(Number(id) || Number(l.id));
     const sessionKey = String(l.id);
+    const on = registered.includes(sessionKey);
     const meetingUrlDraft = liveLinkDrafts[sessionKey] ?? (isValidTeamsUrl(l.roomUrl) ? l.roomUrl : "");
     return (
       <div className="live" key={String(l.id)}>
@@ -813,16 +929,39 @@ export function AppShell() {
         <div className="liveActionsRow">
           <button
             className={`btn ${on ? "secondary" : "primary"}`}
-            onClick={() => {
-              const numericId = Number(l.id);
-              setRegistered((v) =>
-                on ? v.filter((x) => x !== numericId && String(x) !== String(l.id)) : [...v, numericId || Number(String(l.id).slice(-1))],
-              );
-              notify(on ? "Inscription annulée" : "Inscription confirmée");
+            disabled={liveRegistrationBusyId === sessionKey || !isUuid(sessionKey) || !user}
+            onClick={async () => {
+              setLiveRegistrationBusyId(sessionKey);
+              setLiveRegistrationErrors((errors) => ({ ...errors, [sessionKey]: "" }));
+              try {
+                const response = await fetch("/api/live/registrations", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sessionId: sessionKey, action: on ? "cancel" : "register" }),
+                });
+                const result: { error?: string; registered?: boolean } = await response.json();
+                if (!response.ok) throw new Error(result.error || "Impossible de mettre à jour l’inscription LIVE.");
+                setRegistered((current) =>
+                  result.registered
+                    ? current.includes(sessionKey) ? current : [...current, sessionKey]
+                    : current.filter((id) => id !== sessionKey),
+                );
+                notify(result.registered ? "Inscription confirmée" : "Inscription annulée");
+              } catch (error) {
+                setLiveRegistrationErrors((errors) => ({
+                  ...errors,
+                  [sessionKey]: error instanceof Error ? error.message : "Impossible de mettre à jour l’inscription LIVE.",
+                }));
+              } finally {
+                setLiveRegistrationBusyId(null);
+              }
             }}
           >
-            {on ? "Inscrit ✓" : "S'inscrire"}
+            {liveRegistrationBusyId === sessionKey ? "Enregistrement…" : on ? "Inscrit ✓" : "S'inscrire"}
           </button>
+          {liveRegistrationErrors[sessionKey] && (
+            <p className="authError" role="alert">{liveRegistrationErrors[sessionKey]}</p>
+          )}
           <button
             className="btn ghost"
             onClick={() => {
@@ -948,8 +1087,8 @@ export function AppShell() {
       const hasCourseAccess = await loadAccount(data.user, !destination);
       if (destination) {
         setPendingProtectedPage(null);
-        setPage(hasCourseAccess ? destination : "payment");
-        if (!hasCourseAccess) setAuthMessage("Choisissez une formule mensuelle pour débloquer les cours et les LIVE.");
+        setPage(destination === "support" || hasCourseAccess ? destination : "payment");
+        if (destination !== "support" && !hasCourseAccess) setAuthMessage("Choisissez une formule mensuelle pour débloquer les cours et les LIVE.");
         scrollTo(0, 0);
       }
     } catch (error) {
@@ -2351,12 +2490,23 @@ export function AppShell() {
                       <span className="lessonKicker">MODULE {germanCurriculum.modules.find((module) => module.items.some((item) => item.type === "quiz" && item.id === activeGermanQuiz.id))?.id} · ÉVALUATION</span>
                       <h2>{activeGermanQuiz.title}</h2>
                       <p className="muted">{activeGermanQuiz.mode === "multiple" ? "Plusieurs réponses sont correctes. Sélectionnez toutes les bonnes réponses." : activeGermanQuiz.mode === "boolean" ? "Choisissez vrai ou faux, puis validez votre réponse." : "Sélectionnez une réponse, puis validez votre choix."}</p>
-                      <form onSubmit={(event) => {
+                      <form onSubmit={async (event) => {
                         event.preventDefault();
                         const answers = germanQuizAnswers[activeGermanQuiz.id] ?? [];
                         if (!answers.length) return;
                         const isCorrect = answers.length === activeGermanQuiz.answers.length && activeGermanQuiz.answers.every((answer) => answers.includes(answer));
-                        setGermanQuizResults((results) => ({ ...results, [activeGermanQuiz.id]: isCorrect }));
+                        const score = isCorrect ? 100 : 0;
+                        setLearningSaveBusy(true);
+                        setLearningSaveError("");
+                        try {
+                          await saveLearningRecord(`course-${selected.id}`, "quiz", `german-${activeGermanQuiz.id}`, score);
+                          setGermanQuizResults((results) => ({ ...results, [activeGermanQuiz.id]: isCorrect }));
+                          setQuizScores((scores) => ({ ...scores, [`course-${selected.id}:german-${activeGermanQuiz.id}`]: score }));
+                        } catch (error) {
+                          setLearningSaveError(error instanceof Error ? error.message : "Impossible d’enregistrer le résultat du quiz.");
+                        } finally {
+                          setLearningSaveBusy(false);
+                        }
                       }}>
                         <fieldset className="quizQuestion">
                           <legend>{activeGermanQuiz.question}</legend>
@@ -2403,14 +2553,15 @@ export function AppShell() {
                           </div>
                         </fieldset>
                         <div className="quizActions">
-                          <button className="btn primary" type="submit" disabled={!(germanQuizAnswers[activeGermanQuiz.id]?.length)}>
-                            Valider ma réponse
+                          <button className="btn primary" type="submit" disabled={learningSaveBusy || !(germanQuizAnswers[activeGermanQuiz.id]?.length)}>
+                            {learningSaveBusy ? "Enregistrement…" : "Valider ma réponse"}
                           </button>
                           {germanQuizResults[activeGermanQuiz.id] !== undefined && (
                             <strong className={`quizResult ${germanQuizResults[activeGermanQuiz.id] ? "success" : "retry"}`} role="status">
                               {germanQuizResults[activeGermanQuiz.id] ? "Score : 100 % · Bonne réponse" : "Score : 0 % · À revoir"}
                             </strong>
                           )}
+                          {learningSaveError && <p className="authError" role="alert">{learningSaveError}</p>}
                         </div>
                         {germanQuizResults[activeGermanQuiz.id] !== undefined && (
                           <div className={`quizExplanation ${germanQuizResults[activeGermanQuiz.id] ? "success" : "retry"}`}>
@@ -2486,16 +2637,28 @@ export function AppShell() {
                         <button
                           type="button"
                           className={`btn ${selectedCompletedLessons.includes(activeGermanLesson.id) ? "secondary" : "primary"}`}
-                          onClick={() => setCompletedGermanLessons((completed) => ({
-                            ...completed,
-                            [selected.id]: (completed[selected.id] ?? []).includes(activeGermanLesson.id)
-                              ? completed[selected.id]
-                              : [...(completed[selected.id] ?? []), activeGermanLesson.id],
-                          }))}
-                          disabled={selectedCompletedLessons.includes(activeGermanLesson.id)}
+                          onClick={async () => {
+                            setLearningSaveBusy(true);
+                            setLearningSaveError("");
+                            try {
+                              await saveLearningRecord(`course-${selected.id}`, "lesson", `lesson-${activeGermanLesson.id}`);
+                              setCompletedGermanLessons((completed) => ({
+                                ...completed,
+                                [selected.id]: (completed[selected.id] ?? []).includes(activeGermanLesson.id)
+                                  ? completed[selected.id]
+                                  : [...(completed[selected.id] ?? []), activeGermanLesson.id],
+                              }));
+                            } catch (error) {
+                              setLearningSaveError(error instanceof Error ? error.message : "Impossible d’enregistrer la leçon terminée.");
+                            } finally {
+                              setLearningSaveBusy(false);
+                            }
+                          }}
+                          disabled={learningSaveBusy || selectedCompletedLessons.includes(activeGermanLesson.id)}
                         >
-                          {selectedCompletedLessons.includes(activeGermanLesson.id) ? "Leçon validée" : "Terminer cette leçon"}
+                          {learningSaveBusy ? "Enregistrement…" : selectedCompletedLessons.includes(activeGermanLesson.id) ? "Leçon validée" : "Terminer cette leçon"}
                         </button>
+                        {learningSaveError && <p className="authError" role="alert">{learningSaveError}</p>}
                       </footer>
                     </article>
                   ) : null}
@@ -2516,7 +2679,23 @@ export function AppShell() {
                 ))}
               </div>
               <h2 style={{ marginTop: "24px" }}>Quiz de validation</h2>
-              <form onSubmit={(event) => { event.preventDefault(); setQuizSubmitted(true); }}>
+              <form onSubmit={async (event) => {
+                event.preventDefault();
+                const score = selected.quiz.length
+                  ? Math.round((selected.quiz.filter((item, index) => quizAnswers[index] === item.answer).length / selected.quiz.length) * 100)
+                  : 0;
+                setLearningSaveBusy(true);
+                setLearningSaveError("");
+                try {
+                  await saveLearningRecord(`course-${selected.id}`, "quiz", `general-${selected.id}`, score);
+                  setQuizScores((scores) => ({ ...scores, [`course-${selected.id}:general-${selected.id}`]: score }));
+                  setQuizSubmitted(true);
+                } catch (error) {
+                  setLearningSaveError(error instanceof Error ? error.message : "Impossible d’enregistrer le résultat du quiz.");
+                } finally {
+                  setLearningSaveBusy(false);
+                }
+              }}>
                 <div style={{ display: "grid", gap: "18px" }}>
                   {selected.quiz.map((item, index) => (
                     <fieldset key={item.question} style={{ border: 0, borderTop: "1px solid #e2e8f0", padding: "14px 0 0", margin: 0 }}>
@@ -2543,10 +2722,16 @@ export function AppShell() {
                     </fieldset>
                   ))}
                 </div>
-                <button className="btn primary" type="submit" style={{ marginTop: "16px" }}>
-                  Vérifier mes réponses
+                <button className="btn primary" type="submit" style={{ marginTop: "16px" }} disabled={learningSaveBusy}>
+                  {learningSaveBusy ? "Enregistrement…" : "Vérifier mes réponses"}
                 </button>
               </form>
+              {learningSaveError && <p className="authError" role="alert">{learningSaveError}</p>}
+              {quizScores[`course-${selected.id}:general-${selected.id}`] !== undefined && (
+                <p className="authMessage" role="status">
+                  Dernier score enregistré : {quizScores[`course-${selected.id}:general-${selected.id}`]} %
+                </p>
+              )}
               <button
                 className="btn secondary"
                 style={{ marginTop: "12px" }}
@@ -2589,22 +2774,23 @@ export function AppShell() {
         <main className="shell">
           <h1>Demande d'accompagnement</h1>
           <div className="card">
-            {support ? (
+            {supportSent ? (
               <>
                 <h2>✓ Demande envoyée</h2>
-                <p className="muted">En attente d'attribution à un volontaire.</p>
+                <p className="muted">
+                  {supportRequests[0]
+                    ? `« ${supportRequests[0].subject} » · ${supportRequests[0].status}`
+                    : "Votre demande a été enregistrée dans votre compte."}
+                </p>
+                <button type="button" className="btn secondary" onClick={() => setSupportSent(false)}>
+                  Envoyer une autre demande
+                </button>
               </>
             ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSupport(true);
-                  notify("Demande enregistrée");
-                }}
-              >
+              <form onSubmit={submitSupportRequest}>
                 <div className="field">
-                  <label>Type</label>
-                  <select>
+                  <label htmlFor="support-type">Type</label>
+                  <select id="support-type" value={supportType} onChange={(event) => setSupportType(event.target.value)}>
                     <option>Démarches administratives</option>
                     <option>Aide numérique</option>
                     <option>Cours de français</option>
@@ -2613,15 +2799,43 @@ export function AppShell() {
                   </select>
                 </div>
                 <div className="field">
-                  <label>Objet</label>
-                  <input required />
+                  <label htmlFor="support-subject">Objet</label>
+                  <input
+                    id="support-subject"
+                    value={supportSubject}
+                    onChange={(event) => setSupportSubject(event.target.value)}
+                    maxLength={200}
+                    required
+                  />
                 </div>
                 <div className="field">
-                  <label>Description</label>
-                  <textarea rows={6} required />
+                  <label htmlFor="support-description">Description</label>
+                  <textarea
+                    id="support-description"
+                    rows={6}
+                    value={supportDescription}
+                    onChange={(event) => setSupportDescription(event.target.value)}
+                    maxLength={3000}
+                    required
+                  />
                 </div>
-                <button className="btn primary">Envoyer</button>
+                {supportError && <p className="authError" role="alert">{supportError}</p>}
+                <button className="btn primary" type="submit" disabled={supportSubmitting}>
+                  {supportSubmitting ? "Envoi…" : "Envoyer"}
+                </button>
               </form>
+            )}
+            {supportRequests.length > 0 && (
+              <section aria-labelledby="support-history-title">
+                <h2 id="support-history-title">Mes demandes</h2>
+                <ul>
+                  {supportRequests.map((request) => (
+                    <li key={request.id}>
+                      {request.subject} — {request.status} ({new Date(request.created_at).toLocaleDateString("fr-FR")})
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
           </div>
         </main>

@@ -45,6 +45,8 @@ Pour tester, utilisez une séance et un lien Teams distinct par cours, puis vér
 
 Les anciennes séances avec un lien Jitsi continuent de s'afficher dans Mara-Sprach. Le service public `meet.jit.si` affiche toutefois un avertissement de démonstration pour l'intégration et n'est pas retenu pour les cours réguliers.
 
+Les inscriptions et annulations LIVE sont enregistrées dans `live_registrations` pour le compte connecté. Une fonction Supabase verrouille la séance pendant la vérification de capacité, afin d'éviter les dépassements lors d'inscriptions simultanées. L'inscription requiert un accès cours actif et ferme au début de la séance. La progression des leçons, le dernier score de chaque quiz et les demandes d'accompagnement sont également liés au compte Supabase. Les migrations correspondantes doivent être appliquées avant le déploiement.
+
 ## Stripe
 
 1. Créer le prix ponctuel de 10 € pour l'adhésion et les prix mensuels Découverte (25 €), Standard (40 €) et Premium (50 €).
