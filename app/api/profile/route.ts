@@ -110,13 +110,15 @@ export async function PATCH(request: Request) {
   const germanLevel = readText("german_level", 2);
   const email = readText("email", 320);
 
-  if ([firstName, lastName, phone, country, city, birthDate, language, germanLevel, email].some((value) => value === undefined) ||
-    !firstName?.trim() || !lastName?.trim() ||
-    (phone !== null && phone !== undefined && phone !== "" && !/^\+?[0-9().\s-]{6,20}$/.test(phone)) ||
-    (language === null) || (language !== undefined && !LANGUAGE_CODES.includes(language)) ||
-    (germanLevel !== null && germanLevel !== undefined && !GERMAN_LEVELS.includes(germanLevel)) ||
+  if (!firstName || !lastName || !phone || !country || !city || !language || !germanLevel || !email) {
+    return NextResponse.json({ error: "Renseignez tous les champs obligatoires avant d’enregistrer votre profil." }, { status: 400 });
+  }
+
+  if (!/^\+?[0-9().\s-]{6,20}$/.test(phone) ||
+    !LANGUAGE_CODES.includes(language) ||
+    !GERMAN_LEVELS.includes(germanLevel) ||
     (birthDate !== null && birthDate !== undefined && !isValidDateOnly(birthDate)) ||
-    (email !== null && email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Vérifiez les informations saisies." }, { status: 400 });
   }
 

@@ -2321,6 +2321,21 @@ export function AppShell() {
               <form
                 onSubmit={async (event) => {
                   event.preventDefault();
+                  const requiredValues = [
+                    profileData.first_name,
+                    profileData.last_name,
+                    profileData.email,
+                    profileData.phone,
+                    profileData.country,
+                    profileData.city,
+                    profileData.preferred_language,
+                    profileData.german_level,
+                  ];
+                  if (requiredValues.some((value) => !value?.trim())) {
+                    setProfileError("Complétez tous les champs obligatoires avant d’enregistrer votre profil.");
+                    setProfileMessage("");
+                    return;
+                  }
                   setProfileSaving(true);
                   setProfileError("");
                   setProfileMessage("");
@@ -2357,32 +2372,35 @@ export function AppShell() {
                   }
                 }}
               >
+                <p className="profileRequiredNote">
+                  Les champs marqués d’un astérisque sont obligatoires. La photo et la date de naissance restent facultatives.
+                </p>
                 <div className="profileFormGrid">
                 <div className="field profileField">
-                  <label htmlFor="profile-first-name">Prénom</label>
+                  <label htmlFor="profile-first-name">Prénom *</label>
                   <input id="profile-first-name" autoComplete="given-name" maxLength={100} required value={profileData.first_name}
                     onChange={(event) => setProfileData((current) => current ? { ...current, first_name: event.target.value } : current)} />
                 </div>
                 <div className="field profileField">
-                  <label htmlFor="profile-last-name">Nom</label>
+                  <label htmlFor="profile-last-name">Nom *</label>
                   <input id="profile-last-name" autoComplete="family-name" maxLength={100} required value={profileData.last_name}
                     onChange={(event) => setProfileData((current) => current ? { ...current, last_name: event.target.value } : current)} />
                 </div>
                 <div className="field profileField profileFullRow">
-                  <label htmlFor="profile-email">Adresse e-mail</label>
+                  <label htmlFor="profile-email">Adresse e-mail *</label>
                   <input id="profile-email" type="email" autoComplete="email" required value={profileData.email}
                     onChange={(event) => setProfileData((current) => current ? { ...current, email: event.target.value } : current)} />
                   <small>Une confirmation sera demandée avant que la nouvelle adresse remplace l’actuelle.</small>
                 </div>
                 <div className="field profileField">
-                  <label htmlFor="profile-phone">Téléphone</label>
-                  <input id="profile-phone" type="tel" autoComplete="tel" maxLength={20} pattern="\\+?[0-9().\\s-]{6,20}" title="Saisissez un numéro valide (20 caractères maximum)." value={profileData.phone ?? ""}
+                  <label htmlFor="profile-phone">Téléphone *</label>
+                  <input id="profile-phone" type="tel" autoComplete="tel" maxLength={20} pattern="\\+?[0-9().\\s-]{6,20}" title="Saisissez un numéro valide (20 caractères maximum)." required value={profileData.phone ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, phone: event.target.value || null } : current)} />
                   <small>20 caractères maximum, indicatif international accepté.</small>
                 </div>
                 <div className="field profileField">
-                  <label htmlFor="profile-country">Pays</label>
-                  <input id="profile-country" list="profile-country-options" autoComplete="country-name" maxLength={100} value={profileData.country ?? ""}
+                  <label htmlFor="profile-country">Pays *</label>
+                  <input id="profile-country" list="profile-country-options" autoComplete="country-name" maxLength={100} required value={profileData.country ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, country: event.target.value || null } : current)} />
                   <datalist id="profile-country-options">
                     {["France", "Allemagne", "Cameroun", "Côte d’Ivoire", "Sénégal", "Mali", "Burkina Faso", "République démocratique du Congo"].map((country) => (
@@ -2391,8 +2409,8 @@ export function AppShell() {
                   </datalist>
                 </div>
                 <div className="field profileField">
-                  <label htmlFor="profile-city">Ville</label>
-                  <input id="profile-city" autoComplete="address-level2" maxLength={100} value={profileData.city ?? ""}
+                  <label htmlFor="profile-city">Ville *</label>
+                  <input id="profile-city" autoComplete="address-level2" maxLength={100} required value={profileData.city ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, city: event.target.value || null } : current)} />
                 </div>
                 <div className="field profileField">
@@ -2401,8 +2419,8 @@ export function AppShell() {
                     onChange={(event) => setProfileData((current) => current ? { ...current, birth_date: event.target.value || null } : current)} />
                 </div>
                 <div className="field profileField">
-                  <label htmlFor="profile-language">Langue préférée</label>
-                  <select id="profile-language" value={profileData.preferred_language}
+                  <label htmlFor="profile-language">Langue préférée *</label>
+                  <select id="profile-language" required value={profileData.preferred_language}
                     onChange={(event) => {
                       const value = event.target.value;
                       if (value === "fr" || value === "de" || value === "en") {
@@ -2415,10 +2433,10 @@ export function AppShell() {
                   </select>
                 </div>
                 <div className="field profileField">
-                  <label htmlFor="profile-german-level">Niveau d’allemand (facultatif)</label>
-                  <select id="profile-german-level" value={profileData.german_level ?? ""}
+                  <label htmlFor="profile-german-level">Niveau d’allemand *</label>
+                  <select id="profile-german-level" required value={profileData.german_level ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, german_level: event.target.value || null } : current)}>
-                    <option value="">Non renseigné</option>
+                    <option value="">Sélectionner un niveau</option>
                     {["A1", "A2", "B1", "B2", "C1", "C2"].map((level) => <option key={level} value={level}>{level}</option>)}
                   </select>
                 </div>
