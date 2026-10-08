@@ -153,7 +153,6 @@ export async function countRegistrations(admin: SupabaseClient, sessionId: strin
   if (error) throw new Error(`Unable to count registrations: ${error.message}`);
   return count ?? 0;
 }
-}
 
 export async function isRegistered(client: SupabaseClient, sessionId: string): Promise<boolean> {
   const { data, error } = await client
