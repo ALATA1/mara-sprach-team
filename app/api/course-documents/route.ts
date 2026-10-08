@@ -1,6 +1,7 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getCourseAccess } from "@/lib/payments/access";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,9 +46,10 @@ const getStorageClient = () => {
   });
 };
 
-const toPublicDocument = (client: NonNullable<ReturnType<typeof getStorageClient>>, row: CourseDocumentRow) => {
-  const publicUrl = new URL(client.storage.from(BUCKET).getPublicUrl(row.storage_path).data.publicUrl);
-  publicUrl.searchParams.set("download", row.file_name);
+const toCourseDocument = async (client: NonNullable<ReturnType<typeof getStorageClient>>, row: CourseDocumentRow) => {
+  const { data, error } = await client.storage.from(BUCKET)
+    .createSignedUrl(row.storage_path, 900, { download: row.file_name });
+  if (error || !data) throw new Error("Impossible de signer le lien du document.");
 
   return {
     id: row.id,
@@ -56,17 +58,19 @@ const toPublicDocument = (client: NonNullable<ReturnType<typeof getStorageClient
     file_name: row.file_name,
     mime_type: row.mime_type,
     size_bytes: Number(row.size_bytes),
-    public_url: publicUrl.toString(),
+    public_url: data.signedUrl,
     created_at: row.created_at,
   };
 };
 
 export async function GET() {
+  const access = await getCourseAccess();
+  if (!access.allowed) return access.response;
+
   const requiredVariables = [
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "SUPABASE_SERVICE_ROLE_KEY",
-    "COURSE_DOCUMENTS_ADMIN_TOKEN",
   ];
   const missingVariables = requiredVariables.filter((name) => !process.env[name]?.trim());
   if (missingVariables.length) {
@@ -120,14 +124,20 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json({
-    configured: true,
-    stage: "ready",
-    migrationApplied: true,
-    bucketReady: true,
-    message: "La bibliothèque de documents est configurée.",
-    documents: (data as CourseDocumentRow[]).map((row) => toPublicDocument(client, row)),
-  });
+  try {
+    const documents = await Promise.all((data as CourseDocumentRow[]).map((row) => toCourseDocument(client, row)));
+    return NextResponse.json({
+      configured: true,
+      stage: "ready",
+      migrationApplied: true,
+      bucketReady: true,
+      message: "La bibliothèque de documents est configurée.",
+      documents,
+    });
+  } catch (error) {
+    console.error("Unable to create signed course document URLs", error);
+    return NextResponse.json({ error: "Impossible de préparer les liens sécurisés des documents." }, { status: 502 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -214,5 +224,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Le fichier a été transféré, mais son entrée documentaire n’a pas pu être créée." }, { status: 502 });
   }
 
-  return NextResponse.json({ document: toPublicDocument(client, data as CourseDocumentRow) }, { status: 201 });
+  try {
+    return NextResponse.json({ document: await toCourseDocument(client, data as CourseDocumentRow) }, { status: 201 });
+  } catch (error) {
+    console.error("Unable to create a signed URL for the uploaded document", error);
+    return NextResponse.json({ error: "Le document a été enregistré, mais son lien sécurisé est indisponible." }, { status: 502 });
+  }
 }

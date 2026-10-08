@@ -47,13 +47,14 @@ Les anciennes séances avec un lien Jitsi continuent de s'afficher dans Mara-Spr
 
 ## Stripe
 
-1. Créer un produit avec un prix ponctuel de 10 €.
-2. Renseigner `STRIPE_SECRET_KEY` et l'identifiant du prix dans `STRIPE_PRICE_ID`.
-3. Dans les paramètres des moyens de paiement Stripe, activer les options voulues. Checkout affiche dynamiquement celles qui sont activées et disponibles selon le compte, le pays et l'appareil ; leur présence dans l'application ne garantit donc pas leur disponibilité réelle.
-4. Configurer un webhook Stripe vers `https://<votre-domaine>/api/webhooks/stripe` pour `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` et `charge.refunded`, puis renseigner sa clé de signature dans `STRIPE_WEBHOOK_SECRET`.
-5. Déployer la migration `20261008_payments_ledger.sql` avant d'ouvrir le nouveau parcours. Elle crée le registre unifié des paiements, avec lecture limitée à chaque utilisateur et écritures réservées au serveur.
-6. Définir `NEXT_PUBLIC_SITE_URL` avec l'URL publique exacte du site (en local : `http://localhost:3000`). Cette URL sert à construire les liens de retour du paiement.
-7. L'accès étudiant est activé uniquement quand Stripe confirme le paiement comme payé. Les paiements différés restent en attente jusqu'à confirmation du webhook ; le retour navigateur et le webhook peuvent tous deux confirmer la même session sans créer de double adhésion.
+1. Créer le prix ponctuel de 10 € pour l'adhésion et les prix mensuels Découverte (25 €), Standard (40 €) et Premium (50 €).
+2. Configurer `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, les trois variables `STRIPE_PRICE_*_MONTHLY_ID` et `STRIPE_BILLING_PORTAL_CONFIGURATION_ID`.
+3. Dans les paramètres des moyens de paiement Stripe, activer les options voulues. Checkout affiche dynamiquement celles disponibles pour le compte, le pays et l'appareil.
+4. Configurer `/api/webhooks/stripe` pour `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.finalized`, `invoice.payment_succeeded`, `invoice.payment_failed`, `invoice.voided` et `charge.refunded`. Renseigner le secret de signature dans `STRIPE_WEBHOOK_SECRET`.
+5. Appliquer les migrations `20261008_payments_ledger.sql` et `20261008165000_course_billing_access.sql`. La seconde crée le registre d'abonnements, les politiques d'accès aux cours et transforme le bucket documentaire en bucket privé.
+6. Définir `NEXT_PUBLIC_SITE_URL` avec l'URL publique exacte du site (en local : `http://localhost:3000`).
+7. Les formules sont des abonnements mensuels facturés automatiquement. Si l'utilisateur n'a pas encore payé son adhésion, les 10 € ponctuels sont ajoutés au premier paiement uniquement. Stripe génère les factures mensuelles, visibles depuis le portail de facturation.
+8. L'accès aux cours, documents, vidéos et LIVE requiert une adhésion payée et un abonnement de cours actif. Les paiements échoués ou en attente ne donnent pas accès ; l'accès des formateurs et administrateurs reste inchangé.
 
 ## Déploiement Vercel
 

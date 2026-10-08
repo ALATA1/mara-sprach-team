@@ -630,6 +630,79 @@ select {
   font-weight: 900;
   color: #172554;
 }
+.billingPanel {
+  max-width: 650px;
+}
+.billingPlanChoices {
+  display: grid;
+  gap: 9px;
+  margin: 22px 0 12px;
+  padding: 0;
+  border: 0;
+}
+.billingPlanChoices legend {
+  margin-bottom: 10px;
+  font-size: 17px;
+  font-weight: 800;
+}
+.billingPlanOption {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 13px 15px;
+  border: 1px solid #d8e0e5;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+.billingPlanOption.selected,
+.billingPlanOption:hover {
+  border-color: #176b60;
+  background: #f1f8f5;
+}
+.billingPlanOption input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #176b60;
+}
+.billingPlanOption > span,
+.billingPlanOption > span strong,
+.billingPlanOption > span small {
+  display: block;
+}
+.billingPlanOption > span small {
+  margin-top: 3px;
+  color: #637078;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.billingPlanOption > b {
+  color: #172554;
+  font-size: 18px;
+  text-align: right;
+  white-space: nowrap;
+}
+.billingPlanOption > b small {
+  display: block;
+  color: #637078;
+  font-size: 11px;
+  font-weight: 500;
+}
+.billingTotal {
+  margin: 12px 0;
+  color: #35464e;
+  font-size: 14px;
+}
+.billingTotal strong {
+  color: #172554;
+  font-size: 18px;
+}
+.billingManageButton {
+  margin-top: 10px;
+}
 .paymentMethods {
   margin: 24px 0;
 }

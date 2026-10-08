@@ -6,6 +6,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { JitsiRoom } from "@/components/jitsi-room";
 import { GermanPronunciationButton, GermanVoiceStatus } from "@/components/german-pronunciation";
+import { coursePlans, isCoursePlanId, type CoursePlanId } from "@/lib/payments/plans";
 import { directorBiography } from "@/lib/content/director-biography";
 import {
   germanA1Curriculum as germanA1ProgramCurriculum,
@@ -33,8 +34,9 @@ type Course = {
 
 type AccountRole = "beneficiary" | "teacher" | "volunteer" | "admin";
 type Account = { id: string; firstName: string; email: string; role: AccountRole };
-type ProtectedPage = "video-courses" | "live";
+type ProtectedPage = "video-courses" | "live" | "courses" | "course" | "live-room";
 type TeacherCourse = { id: string; title: string; language: string; level: string; published: boolean };
+type BillingSubscription = { plan_id: CoursePlanId; status: string; cancel_at_period_end: boolean };
 
 type LiveSession = {
   id: number | string;
@@ -304,8 +306,12 @@ export function AppShell() {
     [user, setUser] = useState<Account | null>(null),
     [pendingProtectedPage, setPendingProtectedPage] = useState<ProtectedPage | null>(null),
     [paid, setPaid] = useState(false),
+    [membershipActive, setMembershipActive] = useState(false),
+    [billingSubscription, setBillingSubscription] = useState<BillingSubscription | null>(null),
     [authLoading, setAuthLoading] = useState(true),
     [authBusy, setAuthBusy] = useState(false),
+    [billingBusy, setBillingBusy] = useState(false),
+    [selectedPlan, setSelectedPlan] = useState<CoursePlanId>("discovery"),
     [authError, setAuthError] = useState(""),
     [authMessage, setAuthMessage] = useState(""),
     [pendingConfirmationEmail, setPendingConfirmationEmail] = useState(""),
@@ -355,13 +361,17 @@ export function AppShell() {
     [liveSessions, setLiveSessions] = useState<LiveSession[]>(defaultLiveSessions),
     [activeLive, setActiveLive] = useState<LiveSession>(defaultLiveSessions[0]);
 
-  const loadAccount = async (supabaseUser: SupabaseUser, redirectAfterLoad = true) => {
+  const loadAccount = async (supabaseUser: SupabaseUser, redirectAfterLoad = true): Promise<boolean> => {
     const client = createClient();
-    if (!client) return;
+    if (!client) return false;
 
-    const [{ data: profile }, { data: membership }] = await Promise.all([
+    const [{ data: profile }, { data: membership }, { data: activeSubscription }, { data: latestSubscription }] = await Promise.all([
       client.from("profiles").select("first_name, role").eq("id", supabaseUser.id).maybeSingle(),
       client.from("memberships").select("status").eq("user_id", supabaseUser.id).maybeSingle(),
+      client.from("course_subscriptions").select("plan_id, status, cancel_at_period_end")
+        .eq("user_id", supabaseUser.id).eq("status", "active").maybeSingle(),
+      client.from("course_subscriptions").select("plan_id, status, cancel_at_period_end")
+        .eq("user_id", supabaseUser.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     const validRoles: AccountRole[] = ["beneficiary", "teacher", "volunteer", "admin"];
     const profileRole = profile?.role;
@@ -374,7 +384,15 @@ export function AppShell() {
     };
 
     setUser(account);
-    setPaid(role === "teacher" || role === "admin" || membership?.status === "active");
+    const hasAccess = role === "teacher" || role === "admin" ||
+      (membership?.status === "active" && activeSubscription?.status === "active");
+    setMembershipActive(membership?.status === "active");
+    setBillingSubscription(
+      latestSubscription && isCoursePlanId(latestSubscription.plan_id)
+        ? { ...latestSubscription, plan_id: latestSubscription.plan_id }
+        : null,
+    );
+    setPaid(hasAccess);
 
     if (role === "teacher") {
       const { data } = await client
@@ -388,9 +406,10 @@ export function AppShell() {
     }
 
     if (redirectAfterLoad) {
-      if (role === "teacher" || role === "admin" || membership?.status === "active") go("dashboard");
+      if (hasAccess) go("dashboard");
       else go("payment");
     }
+    return hasAccess;
   };
 
   const signOut = async () => {
@@ -398,6 +417,8 @@ export function AppShell() {
     if (client) await client.auth.signOut();
     setUser(null);
     setPaid(false);
+    setMembershipActive(false);
+    setBillingSubscription(null);
     setTeacherCourses([]);
     go("home");
   };
@@ -442,6 +463,8 @@ export function AppShell() {
       if (event === "SIGNED_OUT") {
         setUser(null);
         setPaid(false);
+        setMembershipActive(false);
+        setBillingSubscription(null);
         setTeacherCourses([]);
       }
     });
@@ -454,7 +477,7 @@ export function AppShell() {
     if (parameters.get("payment") === "pending") setToast("Paiement en cours de confirmation. Votre accès sera activé dès que Stripe confirmera le règlement.");
     if (parameters.get("payment") === "refunded") setToast("Ce paiement a été remboursé. L’accès associé n’est plus actif.");
     if (parameters.get("payment") === "error") setAuthError("Le paiement n’a pas pu être confirmé. Contactez l’équipe avant de réessayer.");
-    if (parameters.get("payment") === "cancelled") setAuthMessage("Paiement annulé. Votre accès n’a pas été activé.");
+    if (parameters.get("payment") === "cancelled") setAuthMessage("Paiement annulé. Aucun changement n’a été apporté à votre formule.");
 
     return () => {
       active = false;
@@ -610,11 +633,19 @@ export function AppShell() {
     }
   };
   const go = (p: string) => {
-      if (p === "video-courses" || p === "live") {
+      const protectedPage = (["video-courses", "live", "courses", "course", "live-room"] as const)
+        .find((route) => route === p);
+      if (protectedPage) {
         if (authLoading) return;
         if (!user) {
-          setPendingProtectedPage(p);
+          setPendingProtectedPage(protectedPage);
           setPage("login");
+          scrollTo(0, 0);
+          return;
+        }
+        if (!paid && user.role !== "teacher" && user.role !== "admin") {
+          setAuthMessage("Un abonnement mensuel actif est nécessaire pour accéder aux cours et aux LIVE.");
+          setPage("payment");
           scrollTo(0, 0);
           return;
         }
@@ -632,6 +663,20 @@ export function AppShell() {
     notify = (m: string) => {
       setToast(m);
       setTimeout(() => setToast(""), 2200);
+    },
+    openBillingPortal = async () => {
+      setBillingBusy(true);
+      try {
+        const response = await fetch("/api/billing/portal", { method: "POST" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Le portail de facturation est indisponible.");
+        if (!result.url) throw new Error("Stripe n’a pas renvoyé de lien de facturation.");
+        window.location.assign(result.url);
+      } catch (error) {
+        notify(error instanceof Error ? error.message : "Impossible d’ouvrir vos factures.");
+      } finally {
+        setBillingBusy(false);
+      }
     },
     visible = useMemo(
       () => (language === "Tous" ? courses : courses.filter((c) => c.language === language)),
@@ -900,10 +945,11 @@ export function AppShell() {
       }
       if (!data.user) throw new Error("Supabase n’a renvoyé aucun utilisateur après la connexion.");
       const destination = pendingProtectedPage;
-      await loadAccount(data.user, !destination);
+      const hasCourseAccess = await loadAccount(data.user, !destination);
       if (destination) {
         setPendingProtectedPage(null);
-        setPage(destination);
+        setPage(hasCourseAccess ? destination : "payment");
+        if (!hasCourseAccess) setAuthMessage("Choisissez une formule mensuelle pour débloquer les cours et les LIVE.");
         scrollTo(0, 0);
       }
     } catch (error) {
@@ -1849,10 +1895,36 @@ export function AppShell() {
       )}
       {page === "payment" && (
         <main className="shell">
-          <div className="auth">
-            <h1>Activez votre espace étudiant</h1>
-            <div className="price">10 €</div>
-            <p className="muted">{user?.email ? `Compte confirmé : ${user.email}.` : "Compte confirmé."} Le règlement sécurisé par Stripe active l’adhésion après confirmation du paiement.</p>
+          <div className="auth billingPanel">
+            <h1>Choisissez votre formule de cours</h1>
+            <p className="muted">{user?.email ? `Compte confirmé : ${user.email}. ` : ""}L’adhésion de 10 € est réglée une seule fois avec le premier mois si elle n’a pas encore été payée.</p>
+            <fieldset className="billingPlanChoices">
+              <legend>Formules mensuelles</legend>
+              {(["discovery", "standard", "premium"] as const).map((planId) => {
+                const plan = coursePlans[planId];
+                return (
+                  <label className={`billingPlanOption ${selectedPlan === planId ? "selected" : ""}`} key={planId}>
+                    <input
+                      type="radio"
+                      name="course-plan"
+                      value={planId}
+                      checked={selectedPlan === planId}
+                      onChange={() => setSelectedPlan(planId)}
+                    />
+                    <span>
+                      <strong>{plan.name}</strong>
+                      <small>Abonnement mensuel · résiliable depuis votre espace</small>
+                    </span>
+                    <b>{plan.amountCents / 100} €<small>/ mois</small></b>
+                  </label>
+                );
+              })}
+            </fieldset>
+            <p className="billingTotal">
+              Premier paiement : <strong>{coursePlans[selectedPlan].amountCents / 100 + (membershipActive ? 0 : 10)} €</strong>
+              {membershipActive ? " · adhésion déjà réglée" : " · formule + adhésion unique de 10 €"}
+            </p>
+            <p className="paymentMethodsNote">Stripe émet automatiquement les factures mensuelles. Vous pourrez gérer la formule, son annulation et vos factures depuis votre espace.</p>
             <section className="paymentMethods" aria-labelledby="payment-methods-title">
               <h2 id="payment-methods-title">Choisissez votre moyen de paiement</h2>
               <ul className="paymentMethodsList">
@@ -1866,6 +1938,7 @@ export function AppShell() {
               <p className="paymentMethodsNote">Les moyens effectivement proposés dépendent de leur disponibilité dans le paiement sécurisé Stripe.</p>
             </section>
             {authError && <p className="authError" role="alert">{authError}</p>}
+            {authMessage && <p className="authMessage" role="status">{authMessage}</p>}
             <button
               className="btn primary full"
               disabled={authBusy}
@@ -1873,14 +1946,13 @@ export function AppShell() {
                 setAuthBusy(true);
                 setAuthError("");
                 try {
-                  const response = await fetch("/api/checkout", { method: "POST" });
+                  const response = await fetch("/api/checkout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ planId: selectedPlan }),
+                  });
                   const result = await response.json();
                   if (!response.ok) throw new Error(result.error || "Le paiement n’a pas pu être préparé.");
-                  if (result.alreadyActive) {
-                    setPaid(true);
-                    go("dashboard");
-                    return;
-                  }
                   if (!result.url) throw new Error("Stripe n’a pas renvoyé de lien de paiement.");
                   window.location.assign(result.url);
                 } catch (error) {
@@ -1890,8 +1962,13 @@ export function AppShell() {
                 }
               }}
             >
-              {authBusy ? "Préparation du paiement…" : "Continuer vers Stripe"}
+              {authBusy ? "Préparation du paiement…" : "Continuer vers le paiement sécurisé"}
             </button>
+            {billingSubscription && (
+              <button className="btn ghost full billingManageButton" disabled={billingBusy} onClick={() => void openBillingPortal()}>
+                {billingBusy ? "Ouverture…" : "Gérer mes factures ou mon abonnement"}
+              </button>
+            )}
           </div>
         </main>
       )}
@@ -1926,6 +2003,27 @@ export function AppShell() {
               <p className="muted">Consultez le calendrier, gérez vos inscriptions et rejoignez une séance.</p>
               <button className="btn secondary" onClick={() => go("live")}>Voir le calendrier</button>
             </section>
+            {user?.role !== "teacher" && user?.role !== "admin" && (
+              <section className="dashboardDestination">
+                <span className="liveInfoLabel">ABONNEMENT & FACTURES</span>
+                <h2>{billingSubscription ? `Formule ${coursePlans[billingSubscription.plan_id].name}` : "Votre formule de cours"}</h2>
+                <p className="muted">
+                  {billingSubscription?.status === "active"
+                    ? billingSubscription.cancel_at_period_end
+                      ? "Votre formule restera active jusqu’à la fin de la période déjà payée."
+                      : "Abonnement mensuel actif. Consultez vos factures ou gérez votre abonnement."
+                    : "Consultez les factures disponibles et gérez votre formule Stripe."}
+                </p>
+                {billingSubscription && (
+                  <button className="btn secondary" disabled={billingBusy} onClick={() => void openBillingPortal()}>
+                    {billingBusy ? "Ouverture…" : "Gérer mon abonnement et mes factures"}
+                  </button>
+                )}
+                {!billingSubscription && (
+                  <button className="btn secondary" onClick={() => go("payment")}>Choisir une formule</button>
+                )}
+              </section>
+            )}
           </div>
         </main>
       )}

@@ -4,5 +4,8 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  outputFileTracingIncludes: {
+    "/api/videos/*": ["./private/course-videos/**/*"],
+  },
 };
 export default nextConfig;
