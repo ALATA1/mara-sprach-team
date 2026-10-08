@@ -70,6 +70,9 @@ select {
   min-width: 0;
   filter: drop-shadow(0 3px 7px rgba(37, 99, 235, 0.12));
 }
+.brand img {
+  mix-blend-mode: multiply;
+}
 .logo {
   width: 39px;
   height: 39px;
