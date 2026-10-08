@@ -86,9 +86,9 @@ select {
 }
 .headerAvatarLink {
   display: grid;
-  width: 58px;
-  height: 58px;
-  flex: 0 0 58px;
+  width: clamp(46px, 7vw, 85px);
+  height: clamp(46px, 7vw, 85px);
+  flex: 0 0 clamp(46px, 7vw, 85px);
   place-items: center;
   padding: 3px;
   border: 2px solid rgba(255, 255, 255, 0.95);
@@ -98,8 +98,8 @@ select {
   cursor: pointer;
 }
 .headerAvatarLink img {
-  width: 48px;
-  height: 48px;
+  width: calc(100% - 10px);
+  height: calc(100% - 10px);
   border-radius: 50%;
   object-fit: cover;
 }
@@ -2858,17 +2858,6 @@ select {
   .brand {
     width: auto;
     justify-content: flex-start;
-  }
-
-  .headerAvatarLink {
-    width: 46px;
-    height: 46px;
-    flex-basis: 46px;
-  }
-
-  .headerAvatarLink img {
-    width: 38px;
-    height: 38px;
   }
 
   .topbar {

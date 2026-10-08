@@ -1282,7 +1282,7 @@ export function AppShell() {
               width={420}
               height={120}
               priority
-              style={{ width: "auto", height: "clamp(54px, 7vw, 85px)", objectFit: "contain", cursor: "pointer" }}
+              style={{ width: "auto", height: "clamp(46px, 7vw, 85px)", objectFit: "contain", cursor: "pointer" }}
               onClick={(e) => {
                 e.stopPropagation();
                 setLogoOpen(true);
