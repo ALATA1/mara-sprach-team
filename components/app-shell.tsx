@@ -657,7 +657,7 @@ export function AppShell() {
       })
       .then((profile) => {
         if (!active) return;
-        setProfileData(profile);
+        setProfileData({ ...profile, phone: profile.phone?.slice(0, 20) ?? null });
         setUiLanguage(profile.preferred_language);
         localStorage.setItem("mara-ui-language-v1", profile.preferred_language);
       })
@@ -2169,23 +2169,39 @@ export function AppShell() {
         </main>
       )}
       {page === "profile" && (
-        <main className="shell">
-          <h1>Mon profil / Mes informations</h1>
-          <p className="muted">Ces informations restent privées et ne sont visibles que par vous.</p>
+        <main className="shell profilePage">
+          <section className="profileHero">
+            <div className="profileHeroIcon" aria-hidden="true">✦</div>
+            <div>
+              <span className="profileEyebrow">ESPACE PERSONNEL</span>
+              <h1>Mon profil</h1>
+              <p>Vos informations, votre parcours, votre espace. Personnalisez votre profil Mara-Sprach.</p>
+            </div>
+            <div className="profilePrivacyPill"><span aria-hidden="true">●</span> Privé et sécurisé</div>
+          </section>
           {profileLoading && <p role="status">Chargement du profil…</p>}
           {profileError && <p className="authError" role="alert">{profileError}</p>}
           {profileData && (
-            <section className="card">
+            <section className="card profileCard">
+              <div className="profileCardHeading">
+                <span className="profileSectionIcon" aria-hidden="true">👋</span>
+                <div>
+                  <h2>Mes informations</h2>
+                  <p>Gardez vos coordonnées à jour pour profiter pleinement de vos cours.</p>
+                </div>
+              </div>
               <div className="profilePhotoEditor">
                 {profileData.avatar_url
                   ? <Image src={profileData.avatar_url} alt="Photo de profil" width={96} height={96} unoptimized className="profileAvatar" />
                   : <div className="profileAvatar profileAvatarPlaceholder" aria-label="Aucune photo de profil">{profileData.first_name.slice(0, 1).toUpperCase() || "?"}</div>}
-                <div>
-                  <label htmlFor="profile-avatar">Photo de profil (JPEG, PNG ou WebP, 5 Mo maximum)</label>
+                <div className="profilePhotoContent">
+                  <strong>Votre photo</strong>
+                  <p>Choisissez une image nette pour personnaliser votre espace.</p>
                   <input
                     id="profile-avatar"
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
+                    className="profileFileInput"
                     disabled={profileBusy}
                     onChange={async (event) => {
                       const input = event.currentTarget;
@@ -2210,12 +2226,17 @@ export function AppShell() {
                       }
                     }}
                   />
-                  {profileData.avatar_url && (
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      disabled={profileBusy}
-                      onClick={async () => {
+                  <div className={`profilePhotoActions ${profileBusy ? "isBusy" : ""}`}>
+                    <label className="profileFileButton" htmlFor="profile-avatar">
+                      {profileBusy ? "Veuillez patienter…" : "Choisir une photo"}
+                    </label>
+                    <span>JPG, PNG ou WebP · 5 Mo maximum</span>
+                    {profileData.avatar_url && (
+                      <button
+                        type="button"
+                        className="profileRemovePhoto"
+                        disabled={profileBusy}
+                        onClick={async () => {
                         setProfileBusy(true);
                         setProfileError("");
                         setProfileMessage("");
@@ -2230,11 +2251,12 @@ export function AppShell() {
                         } finally {
                           setProfileBusy(false);
                         }
-                      }}
-                    >
-                      Supprimer ma photo
-                    </button>
-                  )}
+                        }}
+                      >
+                        Supprimer la photo
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               <form
@@ -2276,28 +2298,30 @@ export function AppShell() {
                   }
                 }}
               >
-                <div className="field">
+                <div className="profileFormGrid">
+                <div className="field profileField">
                   <label htmlFor="profile-first-name">Prénom</label>
                   <input id="profile-first-name" autoComplete="given-name" maxLength={100} required value={profileData.first_name}
                     onChange={(event) => setProfileData((current) => current ? { ...current, first_name: event.target.value } : current)} />
                 </div>
-                <div className="field">
+                <div className="field profileField">
                   <label htmlFor="profile-last-name">Nom</label>
                   <input id="profile-last-name" autoComplete="family-name" maxLength={100} required value={profileData.last_name}
                     onChange={(event) => setProfileData((current) => current ? { ...current, last_name: event.target.value } : current)} />
                 </div>
-                <div className="field">
+                <div className="field profileField profileFullRow">
                   <label htmlFor="profile-email">Adresse e-mail</label>
                   <input id="profile-email" type="email" autoComplete="email" required value={profileData.email}
                     onChange={(event) => setProfileData((current) => current ? { ...current, email: event.target.value } : current)} />
                   <small>Une confirmation sera demandée avant que la nouvelle adresse remplace l’actuelle.</small>
                 </div>
-                <div className="field">
+                <div className="field profileField">
                   <label htmlFor="profile-phone">Téléphone</label>
-                  <input id="profile-phone" type="tel" autoComplete="tel" maxLength={40} value={profileData.phone ?? ""}
+                  <input id="profile-phone" type="tel" autoComplete="tel" maxLength={20} pattern="\\+?[0-9().\\s-]{6,20}" title="Saisissez un numéro valide (20 caractères maximum)." value={profileData.phone ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, phone: event.target.value || null } : current)} />
+                  <small>20 caractères maximum, indicatif international accepté.</small>
                 </div>
-                <div className="field">
+                <div className="field profileField">
                   <label htmlFor="profile-country">Pays</label>
                   <input id="profile-country" list="profile-country-options" autoComplete="country-name" maxLength={100} value={profileData.country ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, country: event.target.value || null } : current)} />
@@ -2307,17 +2331,17 @@ export function AppShell() {
                     ))}
                   </datalist>
                 </div>
-                <div className="field">
+                <div className="field profileField">
                   <label htmlFor="profile-city">Ville</label>
                   <input id="profile-city" autoComplete="address-level2" maxLength={100} value={profileData.city ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, city: event.target.value || null } : current)} />
                 </div>
-                <div className="field">
+                <div className="field profileField">
                   <label htmlFor="profile-birth-date">Date de naissance (facultatif)</label>
                   <input id="profile-birth-date" type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)} value={profileData.birth_date ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, birth_date: event.target.value || null } : current)} />
                 </div>
-                <div className="field">
+                <div className="field profileField">
                   <label htmlFor="profile-language">Langue préférée</label>
                   <select id="profile-language" value={profileData.preferred_language}
                     onChange={(event) => {
@@ -2331,7 +2355,7 @@ export function AppShell() {
                     <option value="en">English</option>
                   </select>
                 </div>
-                <div className="field">
+                <div className="field profileField">
                   <label htmlFor="profile-german-level">Niveau d’allemand (facultatif)</label>
                   <select id="profile-german-level" value={profileData.german_level ?? ""}
                     onChange={(event) => setProfileData((current) => current ? { ...current, german_level: event.target.value || null } : current)}>
@@ -2339,11 +2363,17 @@ export function AppShell() {
                     {["A1", "A2", "B1", "B2", "C1", "C2"].map((level) => <option key={level} value={level}>{level}</option>)}
                   </select>
                 </div>
-                {profileError && <p className="authError" role="alert">{profileError}</p>}
-                {profileMessage && <p className="authMessage" role="status">{profileMessage}</p>}
-                <button type="submit" className="btn primary" disabled={profileSaving || profileLoading}>
-                  {profileSaving ? "Enregistrement…" : "Enregistrer mes informations"}
-                </button>
+                </div>
+                <div className="profileFormFooter">
+                  <div>
+                    {profileError && <p className="authError" role="alert">{profileError}</p>}
+                    {profileMessage && <p className="authMessage" role="status">{profileMessage}</p>}
+                    <small>Vos informations sont enregistrées de façon privée dans votre compte.</small>
+                  </div>
+                  <button type="submit" className="profileSaveButton" disabled={profileSaving || profileLoading}>
+                    <span aria-hidden="true">✓</span> {profileSaving ? "Enregistrement…" : "Enregistrer mon profil"}
+                  </button>
+                </div>
               </form>
             </section>
           )}

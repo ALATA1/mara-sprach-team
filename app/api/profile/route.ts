@@ -102,7 +102,7 @@ export async function PATCH(request: Request) {
 
   const firstName = readText("first_name", 100);
   const lastName = readText("last_name", 100);
-  const phone = readText("phone", 40);
+  const phone = readText("phone", 20);
   const country = readText("country", 100);
   const city = readText("city", 100);
   const birthDate = readText("birth_date", 10);
@@ -112,6 +112,7 @@ export async function PATCH(request: Request) {
 
   if ([firstName, lastName, phone, country, city, birthDate, language, germanLevel, email].some((value) => value === undefined) ||
     !firstName?.trim() || !lastName?.trim() ||
+    (phone !== null && phone !== undefined && phone !== "" && !/^\+?[0-9().\s-]{6,20}$/.test(phone)) ||
     (language === null) || (language !== undefined && !LANGUAGE_CODES.includes(language)) ||
     (germanLevel !== null && germanLevel !== undefined && !GERMAN_LEVELS.includes(germanLevel)) ||
     (birthDate !== null && birthDate !== undefined && !isValidDateOnly(birthDate)) ||
