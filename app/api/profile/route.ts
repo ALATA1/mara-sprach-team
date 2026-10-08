@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const AVATAR_BUCKET = "profile-avatars";
-const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+const MAX_AVATAR_SIZE = 10 * 1024 * 1024;
 const MIME_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -24,7 +24,7 @@ const isValidDateOnly = (value: string) => {
     parsed.getTime() <= Date.now();
 };
 
-const hasExpectedImageSignature = async (file: File) => {
+const hasExpectedImageSignature = async (file: Blob & { type: string }) => {
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
   if (file.type === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   if (file.type === "image/png") {
@@ -160,46 +160,71 @@ export async function POST(request: Request) {
   const context = await getUserContext();
   if ("response" in context) return context.response;
 
-  let form: FormData;
+  let body: Record<string, unknown>;
   try {
-    form = await request.formData();
+    body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Le fichier envoyé est invalide." }, { status: 400 });
+    return NextResponse.json({ error: "La requête de photo est invalide." }, { status: 400 });
   }
-  const file = form.get("avatar");
-  if (!(file instanceof File) || file.size < 1 || file.size > MAX_AVATAR_SIZE ||
-    !MIME_EXTENSIONS[file.type] || !(await hasExpectedImageSignature(file))) {
-    return NextResponse.json({ error: "Choisissez une image JPEG, PNG ou WebP de 5 Mo maximum." }, { status: 400 });
+
+  const action = String(body.action ?? "");
+  const mimeType = String(body.mimeType ?? "");
+  const extension = MIME_EXTENSIONS[mimeType];
+  const sizeBytes = Number(body.sizeBytes);
+  if (!extension || !Number.isSafeInteger(sizeBytes) || sizeBytes < 1 || sizeBytes > MAX_AVATAR_SIZE) {
+    return NextResponse.json({ error: "Choisissez une image JPEG, PNG ou WebP de 10 Mo maximum." }, { status: 400 });
+  }
+
+  if (action === "begin") {
+    const storagePath = `${context.user.id}/${randomUUID()}.${extension}`;
+    const { data, error } = await context.admin.storage.from(AVATAR_BUCKET)
+      .createSignedUploadUrl(storagePath, { upsert: false });
+    if (error || !data) {
+      console.error("Unable to prepare profile avatar upload", error);
+      return NextResponse.json({ error: "Impossible de préparer l’envoi de la photo." }, { status: 503 });
+    }
+    return NextResponse.json({ uploadToken: data.token, storagePath, mimeType });
+  }
+
+  const storagePath = String(body.storagePath ?? "");
+  const pathPattern = new RegExp(`^${context.user.id}/[0-9a-f-]{36}\\.${extension}$`, "i");
+  if (action !== "complete" || !pathPattern.test(storagePath)) {
+    return NextResponse.json({ error: "Les informations de la photo envoyée sont invalides." }, { status: 400 });
+  }
+
+  const storage = context.admin.storage.from(AVATAR_BUCKET);
+  const { data: storedFile, error: infoError } = await storage.info(storagePath);
+  if (infoError || !storedFile || Number(storedFile.size) !== sizeBytes || Number(storedFile.size) > MAX_AVATAR_SIZE) {
+    return NextResponse.json({ error: "La photo envoyée est introuvable ou sa taille ne correspond pas." }, { status: 409 });
+  }
+
+  const { data: downloadedFile, error: downloadError } = await storage.download(storagePath);
+  if (downloadError || !downloadedFile || !(await hasExpectedImageSignature(downloadedFile))) {
+    await storage.remove([storagePath]);
+    return NextResponse.json({ error: "Le fichier envoyé n’est pas une image JPEG, PNG ou WebP valide." }, { status: 400 });
   }
 
   const { data: current, error: readError } = await context.admin.from("profiles")
     .select("avatar_path").eq("id", context.user.id).single();
   if (readError) {
+    await storage.remove([storagePath]);
     console.error("Unable to read current profile avatar", readError);
     return NextResponse.json({ error: "Impossible de charger votre profil." }, { status: 503 });
   }
 
-  const path = `${context.user.id}/${randomUUID()}.${MIME_EXTENSIONS[file.type]}`;
-  const { error: uploadError } = await context.admin.storage.from(AVATAR_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
-  if (uploadError) {
-    console.error("Unable to upload profile avatar", uploadError);
-    return NextResponse.json({ error: "Impossible d’enregistrer cette photo." }, { status: 503 });
-  }
-
   const { error: updateError } = await context.admin.from("profiles")
-    .update({ avatar_path: path }).eq("id", context.user.id);
+    .update({ avatar_path: storagePath }).eq("id", context.user.id);
   if (updateError) {
-    await context.admin.storage.from(AVATAR_BUCKET).remove([path]);
+    await storage.remove([storagePath]);
     console.error("Unable to save profile avatar path", updateError);
     return NextResponse.json({ error: "La photo a été téléversée mais le profil n’a pas pu être mis à jour." }, { status: 503 });
   }
 
   if (current.avatar_path) {
-    const { error: removeError } = await context.admin.storage.from(AVATAR_BUCKET).remove([current.avatar_path]);
+    const { error: removeError } = await storage.remove([current.avatar_path]);
     if (removeError) console.error("Unable to remove replaced profile avatar", removeError);
   }
-  const { data: signed, error: signingError } = await context.admin.storage.from(AVATAR_BUCKET).createSignedUrl(path, 900);
+  const { data: signed, error: signingError } = await storage.createSignedUrl(storagePath, 900);
   if (signingError || !signed) {
     console.error("Unable to sign uploaded profile avatar", signingError);
     return NextResponse.json({ error: "Photo enregistrée, mais impossible de l’afficher immédiatement." }, { status: 503 });

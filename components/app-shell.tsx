@@ -357,7 +357,7 @@ export function AppShell() {
     [toast, setToast] = useState(""),
     [photoOpen, setPhotoOpen] = useState(false),
     [logoOpen, setLogoOpen] = useState(false),
-    [formationMenuOpen, setFormationMenuOpen] = useState(false),
+    [servicesMenuOpen, setServicesMenuOpen] = useState(false),
     [aboutMenuOpen, setAboutMenuOpen] = useState(false),
     [accountMenuOpen, setAccountMenuOpen] = useState(false),
     [languageMenuOpen, setLanguageMenuOpen] = useState(false),
@@ -1324,64 +1324,60 @@ export function AppShell() {
               </button>
             </div>
           </div>
-          {user && (
-            <div
-              className={`navDropdown ${formationMenuOpen ? "open" : ""}`}
-              onMouseEnter={() => setFormationMenuOpen(true)}
-              onMouseLeave={() => setFormationMenuOpen(false)}
-              onFocusCapture={() => setFormationMenuOpen(true)}
-              onBlurCapture={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                  setFormationMenuOpen(false);
-                }
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  setFormationMenuOpen(false);
-                  event.currentTarget.querySelector<HTMLButtonElement>(".formationTrigger")?.focus();
-                }
-              }}
-            >
-              <button
-                type="button"
-                className={`btn ghost hideMobile formationTrigger ${["courses", "programme-a1", "programme-a2", "programme-b1"].includes(page) ? "active" : ""}`}
-                aria-expanded={formationMenuOpen}
-                onClick={() => setFormationMenuOpen(true)}
-              >
-                {localizedText("Formation", "Lernen", "Learning")}
-              </button>
-              <div className="formationMenu" aria-label="Sous-menus Formation">
-                {(paid || user.role === "teacher") && (
-                  <button className={page === "courses" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("courses"); }}>
-                    {localizedText("Cours", "Kurse", "Courses")}
-                  </button>
-                )}
-                <button className={page === "programme-a1" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-a1"); }}>
-                  Niveau A1
-                </button>
-                <button className={page === "programme-a2" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-a2"); }}>
-                  Niveau A2
-                </button>
-                <button className={page === "programme-b1" ? "active" : ""} onClick={() => { setFormationMenuOpen(false); go("programme-b1"); }}>
-                  Niveau B1
-                </button>
-              </div>
-            </div>
-          )}
           {user ? (
             <>
-              <button className="btn ghost" onClick={() => go("profile")}>
-                {localizedText("Mon profil", "Mein Profil", "My profile")}
-              </button>
-              {(paid || user.role === "teacher") && (
-                <>
-                  <button className="btn ghost hideMobile" onClick={() => go("live")}>LIVE</button>
-                  <button className="btn ghost hideMobile" onClick={() => go("support")}>{localizedText("Accompagnement", "Begleitung", "Support")}</button>
-                </>
-              )}
-              <button className="btn secondary" onClick={() => go(paid || user.role === "teacher" ? "dashboard" : "payment")}>
-                {user.role === "teacher" ? localizedText("Espace enseignant", "Lehrkraftbereich", "Teacher area") : paid ? localizedText("Espace étudiant", "Lernbereich", "Student area") : localizedText("Finaliser mon accès", "Zugang abschließen", "Complete my access")}
-              </button>
+              <div
+                className={`navDropdown ${servicesMenuOpen ? "open" : ""}`}
+                onMouseEnter={() => setServicesMenuOpen(true)}
+                onMouseLeave={() => setServicesMenuOpen(false)}
+                onFocusCapture={() => setServicesMenuOpen(true)}
+                onBlurCapture={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setServicesMenuOpen(false);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setServicesMenuOpen(false);
+                    event.currentTarget.querySelector<HTMLButtonElement>(".servicesTrigger")?.focus();
+                  }
+                }}
+              >
+                <button
+                  type="button"
+                  className={`btn ghost formationTrigger servicesTrigger ${["courses", "programme-a1", "programme-a2", "programme-b1", "live", "profile", "support", "dashboard"].includes(page) ? "active" : ""}`}
+                  aria-expanded={servicesMenuOpen}
+                  onClick={() => setServicesMenuOpen((open) => !open)}
+                >
+                  {localizedText("Services", "Angebote", "Services")}
+                </button>
+                <div className="formationMenu servicesMenu" aria-label={localizedText("Services", "Angebote", "Services")}>
+                  <button className={["courses", "programme-a1", "programme-a2", "programme-b1"].includes(page) ? "active" : ""} onClick={() => { setServicesMenuOpen(false); go("courses"); }}>
+                    {localizedText("Formation", "Lernen", "Learning")}
+                  </button>
+                  <button className={page === "programme-a1" ? "active" : ""} onClick={() => { setServicesMenuOpen(false); go("programme-a1"); }}>
+                    {localizedText("Niveau A1", "Niveau A1", "Level A1")}
+                  </button>
+                  <button className={page === "programme-a2" ? "active" : ""} onClick={() => { setServicesMenuOpen(false); go("programme-a2"); }}>
+                    {localizedText("Niveau A2", "Niveau A2", "Level A2")}
+                  </button>
+                  <button className={page === "programme-b1" ? "active" : ""} onClick={() => { setServicesMenuOpen(false); go("programme-b1"); }}>
+                    {localizedText("Niveau B1", "Niveau B1", "Level B1")}
+                  </button>
+                  {(paid || user.role === "teacher") && (
+                    <button className={page === "live" ? "active" : ""} onClick={() => { setServicesMenuOpen(false); go("live"); }}>LIVE</button>
+                  )}
+                  <button className={page === "profile" ? "active" : ""} onClick={() => { setServicesMenuOpen(false); go("profile"); }}>
+                    {localizedText("Mon profil", "Mein Profil", "My profile")}
+                  </button>
+                  <button className={page === "dashboard" ? "active" : ""} onClick={() => { setServicesMenuOpen(false); go(paid || user.role === "teacher" ? "dashboard" : "payment"); }}>
+                    {user.role === "teacher" ? localizedText("Espace enseignant", "Lehrkraftbereich", "Teacher area") : paid ? localizedText("Espace étudiant", "Lernbereich", "Student area") : localizedText("Finaliser mon accès", "Zugang abschließen", "Complete my access")}
+                  </button>
+                  {(paid || user.role === "teacher") && (
+                    <button className={page === "support" ? "active" : ""} onClick={() => { setServicesMenuOpen(false); go("support"); }}>
+                      {localizedText("Accompagnement", "Begleitung", "Support")}
+                    </button>
+                  )}
+                </div>
+              </div>
               <button className="btn ghost" onClick={() => void signOut()}>{localizedText("Déconnexion", "Abmelden", "Sign out")}</button>
             </>
           ) : (
@@ -2207,15 +2203,40 @@ export function AppShell() {
                       const input = event.currentTarget;
                       const file = input.files?.[0];
                       if (!file) return;
+                      if (file.size > 10 * 1024 * 1024) {
+                        setProfileError("Choisissez une image de 10 Mo maximum.");
+                        input.value = "";
+                        return;
+                      }
                       setProfileBusy(true);
                       setProfileError("");
                       setProfileMessage("");
                       try {
-                        const form = new FormData();
-                        form.set("avatar", file);
-                        const response = await fetch("/api/profile", { method: "POST", body: form });
-                        const result: { error?: string; avatar_url?: string } = await response.json();
-                        if (!response.ok) throw new Error(result.error || "Impossible d’enregistrer cette photo.");
+                        const storageClient = createClient();
+                        if (!storageClient) throw new Error("Le stockage des photos n’est pas configuré.");
+                        const preparationResponse = await fetch("/api/profile", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ action: "begin", mimeType: file.type, sizeBytes: file.size }),
+                        });
+                        const preparation = await preparationResponse.json();
+                        if (!preparationResponse.ok) throw new Error(preparation.error || "Impossible de préparer l’envoi de la photo.");
+                        const { error: uploadError } = await storageClient.storage
+                          .from("profile-avatars")
+                          .uploadToSignedUrl(preparation.storagePath, preparation.uploadToken, file, { contentType: file.type });
+                        if (uploadError) throw new Error("Supabase n’a pas accepté l’envoi de la photo.");
+                        const completionResponse = await fetch("/api/profile", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({
+                            action: "complete",
+                            mimeType: file.type,
+                            sizeBytes: file.size,
+                            storagePath: preparation.storagePath,
+                          }),
+                        });
+                        const result: { error?: string; avatar_url?: string } = await completionResponse.json();
+                        if (!completionResponse.ok) throw new Error(result.error || "Impossible d’enregistrer cette photo.");
                         setProfileData((current) => current ? { ...current, avatar_url: result.avatar_url ?? null } : current);
                         setProfileMessage("Photo de profil mise à jour.");
                       } catch (error) {
@@ -2230,7 +2251,7 @@ export function AppShell() {
                     <label className="profileFileButton" htmlFor="profile-avatar">
                       {profileBusy ? "Veuillez patienter…" : "Choisir une photo"}
                     </label>
-                    <span>JPG, PNG ou WebP · 5 Mo maximum</span>
+                    <span>JPG, PNG ou WebP · 10 Mo maximum</span>
                     {profileData.avatar_url && (
                       <button
                         type="button"

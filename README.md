@@ -33,7 +33,7 @@ Une fois l'application déployée en HTTPS, elle peut être ajoutée à l'écran
 
 Les documents de cours publiés sont téléchargeables par les visiteurs. Le dépôt est limité à l'API serveur avec `SUPABASE_SERVICE_ROLE_KEY` et `COURSE_DOCUMENTS_ADMIN_TOKEN`; les accès d'écriture anonymes au bucket ne sont pas autorisés. Les fichiers acceptés sont PDF, Word, PowerPoint, Excel, TXT, MP3, M4A, WAV, OGG, MP4 et WebM, jusqu'à 15 Mo.
 
-Les informations de profil (nom, prénom, téléphone, pays, ville, date de naissance facultative, langue et niveau d'allemand) sont privées au compte. La photo est stockée dans le bucket privé `profile-avatars` (JPEG, PNG ou WebP, 5 Mo maximum) et servie par un lien signé temporaire. Le changement d'adresse e-mail passe par Supabase Auth et sa confirmation.
+Les informations de profil (nom, prénom, téléphone, pays, ville, date de naissance facultative, langue et niveau d'allemand) sont privées au compte. La photo est stockée dans le bucket privé `profile-avatars` (JPEG, PNG ou WebP, 10 Mo maximum) et servie par un lien signé temporaire. Le changement d'adresse e-mail passe par Supabase Auth et sa confirmation.
 
 ## Sessions vidéo Jitsi et Microsoft Teams
 
