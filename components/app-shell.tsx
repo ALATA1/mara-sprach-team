@@ -451,6 +451,8 @@ export function AppShell() {
       go("login");
     }
     if (parameters.get("payment") === "confirmed") setToast("Paiement confirmé. Votre accès étudiant est activé.");
+    if (parameters.get("payment") === "pending") setToast("Paiement en cours de confirmation. Votre accès sera activé dès que Stripe confirmera le règlement.");
+    if (parameters.get("payment") === "refunded") setToast("Ce paiement a été remboursé. L’accès associé n’est plus actif.");
     if (parameters.get("payment") === "error") setAuthError("Le paiement n’a pas pu être confirmé. Contactez l’équipe avant de réessayer.");
     if (parameters.get("payment") === "cancelled") setAuthMessage("Paiement annulé. Votre accès n’a pas été activé.");
 
@@ -1851,6 +1853,18 @@ export function AppShell() {
             <h1>Activez votre espace étudiant</h1>
             <div className="price">10 €</div>
             <p className="muted">{user?.email ? `Compte confirmé : ${user.email}.` : "Compte confirmé."} Le règlement sécurisé par Stripe active l’adhésion après confirmation du paiement.</p>
+            <section className="paymentMethods" aria-labelledby="payment-methods-title">
+              <h2 id="payment-methods-title">Choisissez votre moyen de paiement</h2>
+              <ul className="paymentMethodsList">
+                <li><span aria-hidden="true">💳</span> Carte bancaire</li>
+                <li><span aria-hidden="true"></span> Apple Pay</li>
+                <li><span aria-hidden="true">G</span> Google Pay</li>
+                <li><span aria-hidden="true">🇪🇺</span> Wero</li>
+                <li><span aria-hidden="true">🅿️</span> PayPal</li>
+                <li><span aria-hidden="true">🏦</span> Virement bancaire</li>
+              </ul>
+              <p className="paymentMethodsNote">Les moyens effectivement proposés dépendent de leur disponibilité dans le paiement sécurisé Stripe.</p>
+            </section>
             {authError && <p className="authError" role="alert">{authError}</p>}
             <button
               className="btn primary full"

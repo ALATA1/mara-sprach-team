@@ -630,6 +630,43 @@ select {
   font-weight: 900;
   color: #172554;
 }
+.paymentMethods {
+  margin: 24px 0;
+}
+.paymentMethods h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+.paymentMethodsList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.paymentMethodsList li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid #e1e6ef;
+  border-radius: 10px;
+  color: #273449;
+  font-size: 13px;
+  font-weight: 650;
+}
+.paymentMethodsList li span {
+  flex: 0 0 22px;
+  text-align: center;
+}
+.paymentMethodsNote {
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.45;
+}
 .stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

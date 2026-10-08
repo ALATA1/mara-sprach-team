@@ -49,9 +49,11 @@ Les anciennes séances avec un lien Jitsi continuent de s'afficher dans Mara-Spr
 
 1. Créer un produit avec un prix ponctuel de 10 €.
 2. Renseigner `STRIPE_SECRET_KEY` et l'identifiant du prix dans `STRIPE_PRICE_ID`.
-3. Configurer un webhook Stripe vers `https://<votre-domaine>/api/webhooks/stripe` pour les événements `checkout.session.completed` et `checkout.session.async_payment_succeeded`, puis renseigner sa clé de signature dans `STRIPE_WEBHOOK_SECRET`.
-4. Définir `NEXT_PUBLIC_SITE_URL` avec l'URL publique exacte du site (en local : `http://localhost:3000`). Cette URL sert à construire les liens de retour du paiement.
-5. L'accès étudiant est activé uniquement quand Stripe confirme le paiement comme payé. Le retour navigateur et le webhook peuvent tous deux confirmer la même session sans créer de double adhésion.
+3. Dans les paramètres des moyens de paiement Stripe, activer les options voulues. Checkout affiche dynamiquement celles qui sont activées et disponibles selon le compte, le pays et l'appareil ; leur présence dans l'application ne garantit donc pas leur disponibilité réelle.
+4. Configurer un webhook Stripe vers `https://<votre-domaine>/api/webhooks/stripe` pour `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` et `charge.refunded`, puis renseigner sa clé de signature dans `STRIPE_WEBHOOK_SECRET`.
+5. Déployer la migration `20261008_payments_ledger.sql` avant d'ouvrir le nouveau parcours. Elle crée le registre unifié des paiements, avec lecture limitée à chaque utilisateur et écritures réservées au serveur.
+6. Définir `NEXT_PUBLIC_SITE_URL` avec l'URL publique exacte du site (en local : `http://localhost:3000`). Cette URL sert à construire les liens de retour du paiement.
+7. L'accès étudiant est activé uniquement quand Stripe confirme le paiement comme payé. Les paiements différés restent en attente jusqu'à confirmation du webhook ; le retour navigateur et le webhook peuvent tous deux confirmer la même session sans créer de double adhésion.
 
 ## Déploiement Vercel
 
