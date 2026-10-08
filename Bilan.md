@@ -1,6 +1,6 @@
 # Bilan de Mara-Sprach Team
 
-**État du bilan : 8 octobre 2026**
+**État du bilan : 8 octobre 2026 — mise à jour après déploiement**
 
 ## Résumé
 
@@ -23,11 +23,9 @@ Le code principal de l’interface se trouve dans [`components/app-shell.tsx`](.
 
 ### 1. Progression et inscriptions des étudiants
 
-Une partie des inscriptions aux LIVE, de la progression et des demandes est conservée dans le navigateur (`localStorage`), et non comme donnée de compte synchronisée. Ces informations risquent donc de ne pas suivre l’étudiant sur un autre appareil ou navigateur.
+Les inscriptions aux LIVE, la progression des leçons et les derniers scores des quiz sont désormais liés au compte Supabase. Les inscriptions respectent la capacité de façon atomique et requièrent un accès cours actif. Les demandes d’accompagnement sont enregistrées dans `support_requests`. Les migrations et le code correspondants ont été appliqués et déployés le 8 octobre 2026.
 
-Les inscriptions aux LIVE sont maintenant enregistrées et relues dans Supabase pour le compte connecté. La capacité est vérifiée de façon atomique et l'inscription requiert un accès cours actif. Le code et la migration sont prêts localement, mais la migration doit être appliquée et le changement déployé avant de le tester en production.
-
-La progression des leçons et les derniers scores des quiz sont maintenant enregistrés dans Supabase sous le compte connecté. Les demandes d’accompagnement sont également créées et relues dans `support_requests`, au lieu d’afficher une confirmation locale. Ces changements nécessitent une migration locale/production et un déploiement avant d’être disponibles sur le site public.
+La vérification métier complète reste à faire avec un compte étudiant actif : inscription et annulation LIVE, reprise de la progression sur un second appareil, et consultation d’une demande après reconnexion.
 
 ### 2. Outils de gestion pour les formateurs
 
@@ -39,7 +37,7 @@ Il manque un espace formateur complet pour :
 - noter les présences et suivre les participants ;
 - annuler ou reprogrammer une séance et prévenir les inscrits.
 
-Le code local comporte un champ pour enregistrer un lien Teams sur une séance existante. Il ne crée pas de nouvelle séance. Cette évolution doit être poussée et déployée avant d’être disponible sur le site public.
+Un formateur ou administrateur peut enregistrer un lien Teams sur une séance existante. L’interface ne crée pas encore de nouvelle séance et les inscriptions, présences et modifications restent à gérer par des outils distincts.
 
 ### 3. Cours et suivi pédagogique
 
@@ -51,11 +49,11 @@ Les liens Jitsi anciens sont encore pris en charge dans le code, mais le service
 
 Teams fonctionne par ouverture d’un lien vers Teams ou son application : l’appel n’est pas intégré dans Mara-Sprach. Sur téléphone, l’étudiant peut devoir installer l’application Teams. Un compte Microsoft n’est généralement pas obligatoire pour participer comme invité, selon les réglages de la réunion. L’offre Teams Free est limitée à 60 minutes et 100 participants par réunion de groupe.
 
-Une séance de test Teams a été enregistrée dans Supabase pour le 8 octobre 2026, de 18 h à 19 h (heure ROM). Le bon fonctionnement du bouton sur le site public dépend du déploiement du code Teams correspondant et doit être vérifié sur iPhone et Android.
+Une séance de test Teams avait été enregistrée pour le 8 octobre 2026, de 18 h à 19 h (heure ROM). Le code Teams est déployé. Le parcours réel avec un invité sans compte Microsoft reste à vérifier sur ordinateur, iPhone et Android.
 
 ### 5. Accompagnement et demandes
 
-Le formulaire d’accompagnement affiche une confirmation locale, mais ne crée pas encore de dossier de demande assignable et suivable par un bénévole ou un administrateur. Le contact par e-mail et le suivi interne des demandes sont deux fonctionnalités distinctes.
+Le formulaire crée et affiche les demandes liées au compte étudiant. Il manque toujours un tableau de bord permettant aux bénévoles ou administrateurs de les attribuer, de les traiter et de les clôturer. Le contact par e-mail et le suivi interne des demandes sont deux fonctionnalités distinctes.
 
 ### 6. Gestion des comptes et des paiements
 
@@ -69,15 +67,14 @@ Avant une utilisation à grande échelle, il reste à valider les règles d’ac
 
 ### Priorité 1 — Fiabiliser l’accès aux LIVE
 
-1. Pousser et déployer le parcours Teams préparé localement.
-2. Tester une réunion réelle avec un formateur et un étudiant invité sur ordinateur, iPhone et Android.
-3. Afficher clairement l’horaire, les conditions d’accès, la limite de durée et la marche à suivre si Teams demande son application.
+1. Vérifier le parcours Teams déployé avec un formateur et un étudiant invité sur ordinateur, iPhone et Android.
+2. Afficher clairement l’horaire, les conditions d’accès, la limite de durée et la marche à suivre si Teams demande son application.
 
 ### Priorité 2 — Synchroniser les données des étudiants
 
-1. Enregistrer les inscriptions LIVE dans Supabase et faire respecter la capacité.
-2. Synchroniser la progression et les résultats des quiz avec le compte.
-3. Permettre de retrouver les informations après reconnexion sur un autre appareil.
+1. Enregistrer les inscriptions LIVE dans Supabase et faire respecter la capacité — implémenté et déployé.
+2. Synchroniser la progression des leçons et les derniers résultats de quiz — implémenté et déployé.
+3. Tester la reprise sur un second appareil avec un compte étudiant payant.
 
 ### Priorité 3 — Donner les outils essentiels aux formateurs
 
@@ -85,7 +82,7 @@ Créer une interface protégée pour gérer les cours et les séances, la liste 
 
 ### Priorité 4 — Compléter l’accompagnement et préparer la production
 
-Le suivi des demandes d’accompagnement est maintenant enregistré par compte. Il reste à finaliser les pages légales, vérifier les politiques Supabase, organiser les sauvegardes et tester les principaux parcours de paiement et de connexion.
+Le suivi des demandes d’accompagnement est enregistré par compte. Il reste à créer les outils de traitement des demandes, finaliser les pages légales, vérifier les politiques Supabase, organiser les sauvegardes et tester les principaux parcours de paiement et de connexion.
 
 #### Conclusion
 
