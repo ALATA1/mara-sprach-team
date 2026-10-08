@@ -95,6 +95,9 @@ select {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.mobileNavToggle {
+  display: none;
+}
 .nav .btn.active {
   border-color: rgba(79, 70, 229, 0.32);
   background: linear-gradient(135deg, #e8efff, #f0eaff 58%, #e5fbf5);
@@ -2664,12 +2667,87 @@ select {
 }
 @media (max-width: 980px) {
   .topbar {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
   }
 
   .brand {
     margin-left: 0;
+  }
+
+  .mobileNavToggle {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.82);
+    color: #25345c;
+    box-shadow: 0 5px 14px rgba(42, 58, 108, 0.08);
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .mobileNavToggle:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.35);
+    outline-offset: 2px;
+  }
+
+  .nav,
+  .nav.mobileNavOpen {
+    display: none;
+    grid-column: 1 / -1;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-items: start;
+    justify-content: stretch;
+    padding: 12px;
+    border: 1px solid rgba(99, 102, 241, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 12px 28px rgba(44, 62, 112, 0.1);
+  }
+
+  .nav.mobileNavOpen {
+    display: grid;
+  }
+
+  .nav > .btn,
+  .navDropdown,
+  .navDropdown > .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .navDropdown {
+    position: static;
+  }
+
+  .nav > .btn,
+  .navDropdown > .btn {
+    min-height: 44px;
+    justify-content: center;
+    white-space: normal;
+  }
+
+  .formationMenu {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    margin-top: 6px;
+    transform: none;
+    border-radius: 12px;
+  }
+
+  .formationMenu button {
+    min-height: 44px;
+    white-space: normal;
   }
 
   .hero {
@@ -2742,32 +2820,29 @@ select {
     gap: 15px;
   }
 
-  .topbar {
-    padding: 14px 16px;
-  }
-
   .brand {
-    width: 100%;
-    justify-content: center;
+    width: auto;
+    justify-content: flex-start;
   }
 
-  .nav {
-    width: 100%;
-    justify-content: center;
+  .topbar {
+    padding: 10px 14px;
   }
 
-  .nav {
-    gap: 6px;
+  .mobileNavToggle {
+    width: 44px;
+    height: 44px;
   }
 
-  .nav .btn {
-    padding: 10px 12px;
-    font-size: 12px;
+  .nav.mobileNavOpen {
+    padding: 10px;
+    gap: 7px;
   }
 
-  .formationMenu {
-    left: 50%;
-    transform: translateX(-50%);
+  .nav > .btn,
+  .navDropdown > .btn {
+    padding: 10px 8px;
+    font-size: 13px;
   }
 
   .actions {

@@ -361,6 +361,7 @@ export function AppShell() {
     [aboutMenuOpen, setAboutMenuOpen] = useState(false),
     [accountMenuOpen, setAccountMenuOpen] = useState(false),
     [languageMenuOpen, setLanguageMenuOpen] = useState(false),
+    [mobileNavOpen, setMobileNavOpen] = useState(false),
     [uiLanguage, setUiLanguage] = useState<"fr" | "de" | "en">("fr"),
     [cookieChoice, setCookieChoice] = useState<"all" | "necessary" | null>(null),
     [cookiePreferencesOpen, setCookiePreferencesOpen] = useState(false),
@@ -1248,14 +1249,37 @@ export function AppShell() {
             width={420}
             height={120}
             priority
-            style={{ width: "auto", height: "85px", objectFit: "contain", cursor: "pointer" }}
+            style={{ width: "auto", height: "clamp(54px, 7vw, 85px)", objectFit: "contain", cursor: "pointer" }}
             onClick={(e) => {
               e.stopPropagation();
               setLogoOpen(true);
             }}
           />
         </div>
-        <nav className="nav">
+        <button
+          type="button"
+          className="mobileNavToggle"
+          aria-label={mobileNavOpen ? localizedText("Fermer le menu", "Menü schließen", "Close menu") : localizedText("Ouvrir le menu", "Menü öffnen", "Open menu")}
+          aria-expanded={mobileNavOpen}
+          aria-controls="primary-navigation"
+          onClick={() => setMobileNavOpen((open) => !open)}
+        >
+          <span aria-hidden="true">{mobileNavOpen ? "×" : "☰"}</span>
+        </button>
+        <nav
+          id="primary-navigation"
+          className={`nav${mobileNavOpen ? " mobileNavOpen" : ""}`}
+          onClick={(event) => {
+            if (!(event.target instanceof Element)) return;
+            if (event.target.closest(".formationMenu button") || (event.target.closest(".nav > .btn") && !event.target.closest(".navDropdown"))) {
+              setMobileNavOpen(false);
+              setAboutMenuOpen(false);
+              setLanguageMenuOpen(false);
+              setServicesMenuOpen(false);
+              setAccountMenuOpen(false);
+            }
+          }}
+        >
           <button className="btn ghost hideMobile" onClick={() => go("home")}>
             {localizedText("Accueil", "Startseite", "Home")}
           </button>
