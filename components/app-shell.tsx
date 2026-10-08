@@ -349,6 +349,7 @@ export function AppShell() {
     [supportSubmitting, setSupportSubmitting] = useState(false),
     [supportError, setSupportError] = useState(""),
     [profileData, setProfileData] = useState<UserProfile | null>(null),
+    [headerAvatarUrl, setHeaderAvatarUrl] = useState<string | null>(null),
     [profileLoading, setProfileLoading] = useState(false),
     [profileSaving, setProfileSaving] = useState(false),
     [profileBusy, setProfileBusy] = useState(false),
@@ -659,6 +660,7 @@ export function AppShell() {
       .then((profile) => {
         if (!active) return;
         setProfileData({ ...profile, phone: profile.phone?.slice(0, 20) ?? null });
+        setHeaderAvatarUrl(profile.avatar_url);
         setUiLanguage(profile.preferred_language);
         localStorage.setItem("mara-ui-language-v1", profile.preferred_language);
       })
@@ -668,6 +670,36 @@ export function AppShell() {
       .finally(() => {
         if (active) setProfileLoading(false);
       });
+    return () => {
+      active = false;
+    };
+  }, [page, user]);
+
+  useEffect(() => {
+    if (!user) {
+      setHeaderAvatarUrl(null);
+      return;
+    }
+    if (page === "profile") return;
+
+    let active = true;
+    fetch("/api/profile?avatarOnly=true")
+      .then(async (response) => {
+        const result: { error?: string; profile?: { avatar_url: string | null } } = await response.json();
+        if (!response.ok) throw new Error(result.error || "Impossible de charger la photo de profil.");
+        if (!result.profile) throw new Error("Le serveur n’a pas renvoyé la photo de profil.");
+        return result.profile.avatar_url;
+      })
+      .then((avatarUrl) => {
+        if (active) setHeaderAvatarUrl(avatarUrl);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setHeaderAvatarUrl(null);
+          console.error("Unable to load header profile photo", error);
+        }
+      });
+
     return () => {
       active = false;
     };
@@ -1242,19 +1274,42 @@ export function AppShell() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand" onClick={() => go(paid ? "dashboard" : "home")}>
-          <Image
-            src="/logo/logo1.png"
-            alt="Mara-Sprach-Team"
-            width={420}
-            height={120}
-            priority
-            style={{ width: "auto", height: "clamp(54px, 7vw, 85px)", objectFit: "contain", cursor: "pointer" }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setLogoOpen(true);
-            }}
-          />
+        <div className="brandGroup">
+          <div className="brand" onClick={() => go(paid ? "dashboard" : "home")}>
+            <Image
+              src="/logo/logo1.png"
+              alt="Mara-Sprach-Team"
+              width={420}
+              height={120}
+              priority
+              style={{ width: "auto", height: "clamp(54px, 7vw, 85px)", objectFit: "contain", cursor: "pointer" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLogoOpen(true);
+              }}
+            />
+          </div>
+          {user && page !== "profile" && headerAvatarUrl && (
+            <button
+              type="button"
+              className="headerAvatarLink"
+              aria-label={localizedText("Ouvrir mon profil", "Mein Profil öffnen", "Open my profile")}
+              title={localizedText("Mon profil", "Mein Profil", "My profile")}
+              onClick={() => go("profile")}
+            >
+              <Image
+                src={headerAvatarUrl}
+                alt=""
+                width={48}
+                height={48}
+                unoptimized
+                onError={() => {
+                  console.error("Unable to display header profile photo");
+                  setHeaderAvatarUrl(null);
+                }}
+              />
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -2224,10 +2279,10 @@ export function AppShell() {
                   <p>Gardez vos coordonnées à jour pour profiter pleinement de vos cours.</p>
                 </div>
               </div>
-              <div className="profilePhotoEditor">
-                {profileData.avatar_url
-                  ? <Image src={profileData.avatar_url} alt="Photo de profil" width={96} height={96} unoptimized className="profileAvatar" />
-                  : <div className="profileAvatar profileAvatarPlaceholder" aria-label="Aucune photo de profil">{profileData.first_name.slice(0, 1).toUpperCase() || "?"}</div>}
+              <div className={`profilePhotoEditor${profileData.avatar_url ? " hasAvatar" : " noAvatar"}`}>
+                {profileData.avatar_url && (
+                  <Image src={profileData.avatar_url} alt="Photo de profil" width={96} height={96} unoptimized className="profileAvatar" />
+                )}
                 <div className="profilePhotoContent">
                   <strong>Votre photo</strong>
                   <p>Choisissez une image nette pour personnaliser votre espace.</p>
@@ -2276,6 +2331,7 @@ export function AppShell() {
                         const result: { error?: string; avatar_url?: string } = await completionResponse.json();
                         if (!completionResponse.ok) throw new Error(result.error || "Impossible d’enregistrer cette photo.");
                         setProfileData((current) => current ? { ...current, avatar_url: result.avatar_url ?? null } : current);
+                        setHeaderAvatarUrl(result.avatar_url ?? null);
                         setProfileMessage("Photo de profil mise à jour.");
                       } catch (error) {
                         setProfileError(error instanceof Error ? error.message : "Impossible d’enregistrer cette photo.");
@@ -2304,6 +2360,7 @@ export function AppShell() {
                           const result: { error?: string; avatar_url?: string | null } = await response.json();
                           if (!response.ok) throw new Error(result.error || "Impossible de supprimer cette photo.");
                           setProfileData((current) => current ? { ...current, avatar_url: result.avatar_url ?? null } : current);
+                          setHeaderAvatarUrl(result.avatar_url ?? null);
                           setProfileMessage("Photo de profil supprimée.");
                         } catch (error) {
                           setProfileError(error instanceof Error ? error.message : "Impossible de supprimer cette photo.");

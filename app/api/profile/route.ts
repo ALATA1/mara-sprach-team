@@ -53,10 +53,11 @@ const getUserContext = async () => {
   return { user, admin, supabase };
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   const context = await getUserContext();
   if ("response" in context) return context.response;
 
+  const avatarOnly = new URL(request.url).searchParams.get("avatarOnly") === "true";
   const { data: profile, error } = await context.admin.from("profiles")
     .select("first_name, last_name, phone, country, city, birth_date, preferred_language, german_level, avatar_path")
     .eq("id", context.user.id)
@@ -77,6 +78,8 @@ export async function GET() {
     }
     avatarUrl = data.signedUrl;
   }
+
+  if (avatarOnly) return NextResponse.json({ profile: { avatar_url: avatarUrl } });
 
   return NextResponse.json({ profile: { ...profile, avatar_url: avatarUrl, email: context.user.email ?? "" } });
 }
