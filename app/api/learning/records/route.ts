@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { getCourseAccess } from "@/lib/payments/access";
 
+export async function GET() {
+  const access = await getCourseAccess();
+  if (!access.allowed) return access.response;
+
+  const { data, error } = await access.supabase.from("student_learning_records")
+    .select("course_key, item_type, item_key, score_percentage, completed_at");
+  if (error) {
+    console.error("Unable to load student learning records", error);
+    return NextResponse.json({ error: "Impossible de charger votre progression." }, { status: 503 });
+  }
+  return NextResponse.json({ records: data ?? [] });
+}
+
 export async function POST(request: Request) {
   const access = await getCourseAccess();
   if (!access.allowed) return access.response;

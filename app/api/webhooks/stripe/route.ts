@@ -77,6 +77,25 @@ export async function POST(req: Request) {
       await syncStripeInvoice(stripe, supabase, event.data.object, event.type);
     } else if (event.type === "charge.refunded") {
       await reconcileStripeRefund(stripe, supabase, event.data.object);
+    } else if (event.type === "refund.updated") {
+      const refund = event.data.object;
+      const requestId = refund.metadata?.mara_refund_request_id;
+      if (requestId) {
+        const status = refund.status === "succeeded" ? "succeeded" :
+          refund.status === "failed" || refund.status === "canceled" ? "failed" : "pending";
+        const { error } = await supabase.from("admin_refund_actions").update({
+          status,
+          stripe_refund_id: refund.id,
+          updated_at: new Date().toISOString(),
+        }).eq("id", requestId);
+        if (error) throw new Error("Impossible de mettre à jour le suivi du remboursement administrateur.");
+      }
+      if (refund.status === "succeeded" && refund.charge) {
+        const charge = await stripe.charges.retrieve(
+          typeof refund.charge === "string" ? refund.charge : refund.charge.id,
+        );
+        await reconcileStripeRefund(stripe, supabase, charge);
+      }
     }
     return NextResponse.json({ received: true });
   } catch (error) {

@@ -2916,3 +2916,177 @@ select {
     font-size: 17px;
   }
 }
+
+.staffDashboard {
+  padding-top: 36px;
+  padding-bottom: 72px;
+}
+.staffDashboardHeader,
+.staffRequestHeading,
+.staffRequestControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.staffDashboardHeader {
+  margin-bottom: 24px;
+}
+.staffDashboardHeader h1,
+.staffRequest h2 {
+  margin: 4px 0;
+}
+.staffRequestList {
+  display: grid;
+  gap: 16px;
+}
+.staffRequest {
+  padding: 22px;
+}
+.staffRequestDescription {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.staffRequestControls {
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.staffRequestControls .field {
+  min-width: min(100%, 240px);
+}
+.staffSuccess {
+  color: #166534;
+}
+.staffEditor {
+  margin: 20px 0;
+  padding: 22px;
+}
+.staffForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.staffFormActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.staffFullWidth {
+  grid-column: 1 / -1;
+}
+.staffParticipants {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+.adminTableWrap {
+  margin: 20px 0;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+}
+.adminTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.adminTable th,
+.adminTable td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+.adminTable th {
+  background: #f8fafc;
+}
+.refundConfirmation {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff7f7;
+}
+.btn.danger {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+}
+.staffParticipant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+}
+.courseLessonEditor {
+  margin-top: 18px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 14px;
+}
+.courseLessonEditor summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.staffLessonEdit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+.publishedCourses {
+  display: grid;
+  gap: 16px;
+  margin-top: 32px;
+}
+.publishedCourse {
+  padding: 22px;
+}
+.publishedLessonList {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.publishedLesson {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+.publishedLesson a {
+  display: block;
+  margin-top: 4px;
+}
+@media (max-width: 620px) {
+  .staffDashboardHeader,
+  .staffRequestHeading,
+  .staffRequestControls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .staffRequestControls .field {
+    width: 100%;
+  }
+  .staffForm {
+    grid-template-columns: 1fr;
+  }
+  .staffLessonEdit {
+    grid-template-columns: 1fr;
+  }
+  .staffFullWidth {
+    grid-column: auto;
+  }
+  .publishedLesson {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

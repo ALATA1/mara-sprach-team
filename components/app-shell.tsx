@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -36,6 +37,14 @@ type AccountRole = "beneficiary" | "teacher" | "volunteer" | "admin";
 type Account = { id: string; firstName: string; email: string; role: AccountRole };
 type ProtectedPage = "video-courses" | "live" | "courses" | "course" | "live-room" | "support" | "profile";
 type TeacherCourse = { id: string; title: string; language: string; level: string; published: boolean };
+type PublishedCourse = {
+  id: string;
+  title: string;
+  language: "fr" | "de";
+  level: string;
+  description: string;
+  lessons: { id: string; title: string; video_url: string | null; duration_seconds: number | null }[];
+};
 type BillingSubscription = { plan_id: CoursePlanId; status: string; cancel_at_period_end: boolean };
 type LearningRecord = {
   course_key: string;
@@ -336,6 +345,10 @@ export function AppShell() {
     [pendingConfirmationEmail, setPendingConfirmationEmail] = useState(""),
     [signupAccountType, setSignupAccountType] = useState<"student" | "teacher" | "">(""),
     [teacherCourses, setTeacherCourses] = useState<TeacherCourse[]>([]),
+    [publishedCourses, setPublishedCourses] = useState<PublishedCourse[]>([]),
+    [publishedCourseLoading, setPublishedCourseLoading] = useState(false),
+    [publishedCourseError, setPublishedCourseError] = useState(""),
+    [publishedCourseProgress, setPublishedCourseProgress] = useState<string[]>([]),
     [language, setLanguage] = useState("Tous"),
     [selected, setSelected] = useState(courses[0]),
     [registered, setRegistered] = useState<string[]>([]),
@@ -596,7 +609,9 @@ export function AppShell() {
 
     const loadSessions = async () => {
       try {
-        const { data, error } = await client.from("live_sessions").select("*").order("start_at", { ascending: true });
+        const { data, error } = await client.from("live_sessions").select("*")
+          .eq("status", "scheduled")
+          .order("start_at", { ascending: true });
         if (!active || error || !Array.isArray(data)) {
           setLiveSessions(defaultLiveSessions);
           return;
@@ -644,6 +659,39 @@ export function AppShell() {
       active = false;
     };
   }, [page]);
+
+  useEffect(() => {
+    if (page !== "courses" || !user) return;
+    let active = true;
+    setPublishedCourseLoading(true);
+    setPublishedCourseError("");
+    fetch("/api/courses", { cache: "no-store" })
+      .then(async (response) => {
+        const result: {
+          error?: string;
+          courses?: PublishedCourse[];
+          records?: { course_key: string; item_type: string; item_key: string }[];
+        } = await response.json();
+        if (!response.ok) throw new Error(result.error || "Impossible de charger les cours publiés.");
+        return result;
+      })
+      .then((result) => {
+        if (!active) return;
+        setPublishedCourses(result.courses ?? []);
+        setPublishedCourseProgress((result.records ?? [])
+          .filter((record) => record.item_type === "lesson")
+          .map((record) => `${record.course_key}:${record.item_key}`));
+      })
+      .catch((error: unknown) => {
+        if (active) setPublishedCourseError(error instanceof Error ? error.message : "Impossible de charger les cours publiés.");
+      })
+      .finally(() => {
+        if (active) setPublishedCourseLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [page, user]);
 
   useEffect(() => {
     if (page !== "profile" || !user) return;
@@ -1338,6 +1386,21 @@ export function AppShell() {
           <button className="btn ghost hideMobile" onClick={() => go("home")}>
             {localizedText("Accueil", "Startseite", "Home")}
           </button>
+          {user?.role === "teacher" && (
+            <Link className="btn ghost" href="/staff/teaching">
+              Espace formateur
+            </Link>
+          )}
+          {user && (user.role === "volunteer" || user.role === "admin") && (
+            <Link className="btn ghost" href="/staff">
+              Espace équipe
+            </Link>
+          )}
+          {user?.role === "admin" && (
+            <Link className="btn ghost" href="/staff/admin">
+              Administration
+            </Link>
+          )}
           <div
             className={`navDropdown ${aboutMenuOpen ? "open" : ""}`}
             onMouseEnter={() => setAboutMenuOpen(true)}
@@ -2583,6 +2646,69 @@ export function AppShell() {
             ))}
           </div>
           <div className="grid">{visible.map(card)}</div>
+          <section className="publishedCourses" aria-labelledby="published-courses-title">
+            <h2 id="published-courses-title">Cours publiés par les formateurs</h2>
+            {publishedCourseLoading && <p role="status">Chargement des nouveaux cours…</p>}
+            {publishedCourseError && <p className="authError" role="alert">{publishedCourseError}</p>}
+            {publishedCourses
+              .filter((course) => language === "Tous" || course.language === (language === "Français" ? "fr" : "de"))
+              .map((course) => (
+                <article className="card publishedCourse" key={course.id}>
+                  <div className="staffRequestHeading">
+                    <div>
+                      <p className="eyebrow">{course.language === "fr" ? "Français" : "Allemand"} · {course.level}</p>
+                      <h2>{course.title}</h2>
+                    </div>
+                    <span className="pill">{course.lessons.length} leçons</span>
+                  </div>
+                  {course.description && <p>{course.description}</p>}
+                  <div className="publishedLessonList">
+                    {course.lessons.map((lesson) => {
+                      const progressKey = `${course.id}:${lesson.id}`;
+                      const completed = publishedCourseProgress.includes(progressKey);
+                      return (
+                        <div className="publishedLesson" key={lesson.id}>
+                          <div>
+                            <strong>{lesson.title}</strong>
+                            {lesson.duration_seconds && <span className="muted"> · {Math.ceil(lesson.duration_seconds / 60)} min</span>}
+                            {lesson.video_url && <a href={lesson.video_url} target="_blank" rel="noreferrer">Voir la vidéo</a>}
+                          </div>
+                          <button
+                            className={`btn ${completed ? "secondary" : "ghost"}`}
+                            type="button"
+                            disabled={completed}
+                            onClick={async () => {
+                              setPublishedCourseError("");
+                              try {
+                                const response = await fetch("/api/learning/records", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    courseKey: course.id,
+                                    itemType: "lesson",
+                                    itemKey: lesson.id,
+                                  }),
+                                });
+                                const result: { error?: string } = await response.json();
+                                if (!response.ok) throw new Error(result.error || "Impossible d’enregistrer la progression.");
+                                setPublishedCourseProgress((current) => current.includes(progressKey)
+                                  ? current
+                                  : [...current, progressKey]);
+                              } catch (error) {
+                                setPublishedCourseError(error instanceof Error ? error.message : "Impossible d’enregistrer la progression.");
+                              }
+                            }}
+                          >{completed ? "Terminée ✓" : "Marquer terminée"}</button>
+                        </div>
+                      );
+                    })}
+                    {course.lessons.length === 0 && <p className="muted">Le formateur n’a pas encore ajouté de leçon.</p>}
+                  </div>
+                </article>
+              ))}
+            {!publishedCourseLoading && !publishedCourseError && publishedCourses.length === 0 &&
+              <p className="muted">Aucun cours supplémentaire n’est publié pour le moment.</p>}
+          </section>
         </main>
       )}
       {(page === "course" || page === "live-room") && (

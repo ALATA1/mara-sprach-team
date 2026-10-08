@@ -63,6 +63,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "La clé serveur Supabase n’est pas configurée." }, { status: 503 });
   }
 
+  const { data: existingSession, error: lookupError } = await admin
+    .from("live_sessions")
+    .select("teacher_id")
+    .eq("id", body.sessionId)
+    .maybeSingle();
+  if (lookupError) {
+    console.error("Unable to verify meeting-link session ownership", lookupError);
+    return NextResponse.json({ error: "Impossible de vérifier les droits sur cette séance." }, { status: 503 });
+  }
+  if (!existingSession) {
+    return NextResponse.json({ error: "Séance introuvable. Actualisez le calendrier." }, { status: 404 });
+  }
+  if (profile.role === "teacher" && existingSession.teacher_id !== user.id) {
+    return NextResponse.json({ error: "Cette séance n’est pas attribuée à votre compte." }, { status: 403 });
+  }
+
   const { data: session, error: updateError } = await admin
     .from("live_sessions")
     .update({ meeting_url: body.meetingUrl })

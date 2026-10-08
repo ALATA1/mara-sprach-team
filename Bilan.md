@@ -4,7 +4,7 @@
 
 ## Résumé
 
-Mara-Sprach Team possède déjà une base fonctionnelle : inscription et connexion, paiement, cours, vidéos, documents, calendrier LIVE et installation du site sur téléphone. L’application reste toutefois un MVP : plusieurs actions visibles ne sont pas encore reliées à un suivi durable dans le compte de l’étudiant, et les formateurs ne disposent pas encore d’un véritable espace d’administration des cours et des séances.
+Mara-Sprach Team possède une base fonctionnelle d'inscription, de paiement, de cours, de documents, de calendrier LIVE et d'installation PWA. Des espaces de travail viennent d'être ajoutés pour les formateurs, bénévoles et administrateurs. La sortie reste une bêta web : les migrations récentes doivent encore être vérifiées/appliquées en production et les services et parcours réels doivent être testés.
 
 Le code principal de l’interface se trouve dans [`components/app-shell.tsx`](./components/app-shell.tsx). Les configurations et prérequis sont décrits dans [`README.md`](./README.md).
 
@@ -30,19 +30,13 @@ La vérification métier complète reste à faire avec un compte étudiant actif
 
 ### 2. Outils de gestion pour les formateurs
 
-Il manque un espace formateur complet pour :
+L’espace `/staff/teaching` permet aux formateurs de créer/modifier des cours et des leçons, de publier/dépublier un cours, de créer des séances LIVE, de voir les inscrits, noter les présences, reprogrammer ou annuler une séance. Les cours publiés et leurs leçons apparaissent dans le catalogue étudiant. Les liens Teams peuvent être enregistrés sur les séances.
 
-- créer, modifier, publier et archiver des cours ;
-- créer une séance LIVE, définir son horaire, sa capacité et son lien ;
-- voir et gérer les inscriptions ;
-- noter les présences et suivre les participants ;
-- annuler ou reprogrammer une séance et prévenir les inscrits.
-
-Un formateur ou administrateur peut enregistrer un lien Teams sur une séance existante. L’interface ne crée pas encore de nouvelle séance et les inscriptions, présences et modifications restent à gérer par des outils distincts.
+Les accès de formateurs aux séances sont limités à celles dont ils sont responsables. Les séances historiques non attribuées restent réservées à la gestion administrateur. L’envoi de courriels d’annulation/reprogrammation dépend de Resend ; sans configuration ou en cas d’échec, l’espace affiche un avertissement. Il reste à tester ce parcours avec des comptes formateur/étudiant réels et à décider si les contenus vidéo et documents ont besoin d’édition plus complète depuis cet espace.
 
 ### 3. Cours et suivi pédagogique
 
-Les contenus sont principalement prédéfinis dans le code. Il n’existe pas encore de parcours formateur pour créer et organiser toutes les leçons, activités, quiz, devoirs ou évaluations depuis l’application. Les résultats et la progression pédagogique ne constituent pas encore un dossier étudiant centralisé et synchronisé.
+Les cours créés par les formateurs ont un catalogue dynamique de leçons et un suivi de leçon terminé lié au compte. Les parcours français/allemand préexistants, quiz, devoirs et évaluations ne sont pas tous administrables depuis l’espace formateur ; la progression des cours dynamiques ne couvre pas encore les quiz/devoirs. Les enseignants doivent être affectés aux comptes par un administrateur.
 
 ### 4. Visioconférence
 
@@ -54,37 +48,54 @@ Une séance de test Teams avait été enregistrée pour le 8 octobre 2026, de 18
 
 ### 5. Accompagnement et demandes
 
-Le formulaire crée et affiche les demandes liées au compte étudiant. Il manque toujours un tableau de bord permettant aux bénévoles ou administrateurs de les attribuer, de les traiter et de les clôturer. Le contact par e-mail et le suivi interne des demandes sont deux fonctionnalités distinctes.
+Le formulaire crée et affiche les demandes liées au compte étudiant. L’espace `/staff` permet aux bénévoles de réclamer les demandes non attribuées et de suivre celles qui leur sont attribuées ; les administrateurs peuvent les attribuer à un bénévole et modifier leur état. L’API contrôle les rôles et filtre les demandes des bénévoles. Il reste à ajouter les notifications de création/affectation/changement d’état et un journal détaillé de suivi. Le contact e-mail reste distinct de ces demandes.
 
 ### 6. Gestion des comptes et des paiements
 
-Les utilisateurs peuvent désormais modifier leur profil personnel. Les demandes d’accès formateur doivent être examinées et activées séparément par l’administration. L’application n’a pas encore de tableau de bord pour approuver les demandes, gérer les rôles, traiter les remboursements ou accompagner les paiements en échec.
+L’espace `/staff/admin` liste les comptes, rôles, adhésions et formules. Il permet de promouvoir/démouvoir les comptes avec journalisation et protection contre le retrait du dernier administrateur. L’administration peut consulter paiements et abonnements, ouvrir le portail Stripe d’un client pour l’aider, et initier un remboursement intégral avec confirmation, motif et clé d’idempotence. Les demandes d’accès formateur restent une décision manuelle via l’espace admin ; l’approbation n’est pas encore un processus dédié. Les remboursements partiels ne sont pas pris en charge.
 
 ### 7. Disponibilité, confidentialité et exploitation
 
-Avant une utilisation à grande échelle, il reste à valider les règles d’accès Supabase (RLS), les sauvegardes et la restauration, la surveillance des erreurs et les notifications. Les pages complètes de mentions légales, conditions d’utilisation et politique de confidentialité doivent également être vérifiées ou ajoutées. Les prérequis de mise en production sont récapitulés dans [`README.md`](./README.md) et les règles de données dans [`supabase/migrations/`](./supabase/migrations/).
+Les nouvelles migrations `20261008210000_staff_operations.sql`, `20261008211000_admin_operations.sql`, `20261008212000_refund_processing_status.sql` et `20261008213000_staff_student_rls_hardening.sql` ont été appliquées à Supabase local seulement. Le contrôle local `supabase db lint` et les Security Advisors ne détectent pas de problème. Des politiques et privilèges trop permissifs ont été resserrés : les inscriptions LIVE passent par les fonctions atomiques (plus d'écriture directe) et un étudiant ne peut plus modifier directement l'état d'une demande. Il faut vérifier l'historique puis appliquer les migrations manquantes au projet de production après sauvegarde, sans réinitialisation. Les sauvegardes et la restauration, les alertes de production, la configuration SMTP/Resend, Stripe et Teams, ainsi que la disponibilité et l'accès à l'espace admin restent à valider en production contrôlée. **L’éditeur indique que Mara-Sprach Team n’est pas encore déclaré juridiquement en France et envisage une entreprise individuelle** : les mentions légales, conditions de vente/utilisation et documents de confidentialité ne peuvent donc pas être finalisés avec le seul nom de marque. L’identité et les coordonnées légales (dont l’immatriculation) devront être établies, puis les documents vérifiés par un professionnel compétent avant tout lancement commercial. Voir [`README.md`](./README.md).
+
+### 8. Tests et qualité
+
+Les tests d’intégration Supabase vérifient inscription/annulation LIVE, l’anti-doublon, la capacité, les présences, la progression et son isolation, les restrictions RLS d’écriture directe, ainsi que le traitement d’une demande, les changements de rôle, leur journalisation et la protection du dernier administrateur. Les tests webhook rejettent les signatures absentes/invalides et vérifient la synchronisation locale des états pending/failed à partir d’événements signés simulés. Ils créent et suppriment des comptes temporaires ; le harnais refuse toute cible Supabase hors `localhost`/`127.0.0.1`. Ils ne couvrent pas encore les API/UI complètes des tableaux de bord, les courriels Resend, les parcours d’authentification complets, ni le cycle complet des remboursements dans le compte Stripe de test.
+
+**Contrôle local du 8 octobre 2026 :** les tests d’intégration passent sur Supabase local ; `supabase db lint` et les Security Advisors passent sans problème signalé ; `npm run build`, `npm run typecheck` et `npm run lint` passent, et `npm audit` ne signale aucune vulnérabilité. ESLint signale encore cinq avertissements préexistants dans `components/app-shell.tsx` (variables/types inutilisés, `any` et dépendances de hook). Les migrations récentes sont appliquées localement. Ces contrôles ne remplacent pas la validation des API avec chaque rôle, le cycle complet de paiement/remboursement sur une intégration Stripe de test, les courriels Resend, ni les essais métier sur appareils réels.
+
+### 9. Application mobile et stores
+
+Le dépôt est une application web Next.js. Il contient un manifeste et des icônes PWA, ainsi que des métadonnées Apple permettant l’ajout à l’écran d’accueil. Il ne contient pas de projet natif iOS ou Android, de configuration de compilation/signature, ni de chaîne de livraison App Store Connect ou Google Play Console. L’installation PWA décrite dans le README n’équivaut donc pas à une publication dans les stores. Le manifeste seul ne prouve pas non plus que l’installation PWA et le fonctionnement hors ligne sont complets sur tous les appareils.
 
 ## Priorités recommandées
 
-### Priorité 1 — Fiabiliser l’accès aux LIVE
+### Priorité 1 — Vérifier la mise en production réelle
 
-1. Vérifier le parcours Teams déployé avec un formateur et un étudiant invité sur ordinateur, iPhone et Android.
-2. Afficher clairement l’horaire, les conditions d’accès, la limite de durée et la marche à suivre si Teams demande son application.
+1. Vérifier la séparation des environnements : l’URL Supabase publique est intégrée au bundle lors de la compilation ; utiliser les variables Supabase locales pour les essais locaux. Vérifier ensuite les migrations manquantes du projet de production, sauvegarder puis planifier leur application. Le durcissement RLS est validé en local ; il n’est pas déployé en production.
+2. Tester inscription, confirmation d’e-mail, récupération de mot de passe, accès étudiant/formateur, paiement réussi/échoué/remboursé, abonnement et webhook Stripe en environnement de test puis en production contrôlée.
+3. Vérifier le parcours Teams avec un formateur et un étudiant invité sur ordinateur, iPhone et Android ; clarifier les conditions d’accès et les limites de durée.
 
-### Priorité 2 — Synchroniser les données des étudiants
+### Priorité 2 — Valider les outils formateurs et bénévoles
 
-1. Enregistrer les inscriptions LIVE dans Supabase et faire respecter la capacité — implémenté et déployé.
-2. Synchroniser la progression des leçons et les derniers résultats de quiz — implémenté et déployé.
-3. Tester la reprise sur un second appareil avec un compte étudiant payant.
+Les interfaces de gestion des cours, leçons et séances, des inscriptions/présences et des demandes d’accompagnement sont maintenant présentes. Il reste à tester les parcours bout en bout avec des comptes de chaque rôle, vérifier les notifications e-mail Resend en environnement de test, et préciser le processus d’approbation des demandes d’accès formateur. Les quiz/devoirs des cours créés dans le nouvel espace formateur ne sont pas encore administrables depuis cette interface.
 
-### Priorité 3 — Donner les outils essentiels aux formateurs
+### Priorité 3 — Valider l’administration et les paiements
 
-Créer une interface protégée pour gérer les cours et les séances, la liste des inscrits, les présences et les changements de dernière minute.
+La console d’administration des comptes, rôles, adhésions, paiements et abonnements est disponible ; les changements de rôle sont audités et le dernier administrateur est protégé. Tester les remboursements et webhooks exclusivement avec Stripe en mode test (succès, attente, échec, reprise idempotente) avant toute décision de déploiement. Seuls les remboursements intégraux sont pris en charge ; aucun remboursement réel n’a été effectué.
 
-### Priorité 4 — Compléter l’accompagnement et préparer la production
+### Priorité 4 — Fermer les prérequis de production
 
-Le suivi des demandes d’accompagnement est enregistré par compte. Il reste à créer les outils de traitement des demandes, finaliser les pages légales, vérifier les politiques Supabase, organiser les sauvegardes et tester les principaux parcours de paiement et de connexion.
+Auditer les règles RLS pour chaque table et rôle, vérifier les migrations après sauvegarde avant de les appliquer en production, et éprouver les sauvegardes/restaurations, alertes, journaux et procédures de support. Finaliser et faire valider les pages légales et la conformité RGPD, documenter les données collectées, leur durée de conservation et les procédures d’exercice des droits. Valider les paramètres réels de Supabase, Stripe, Teams et Resend dans un déploiement contrôlé, sans utiliser de données ou paiements réels pour les tests.
 
-#### Conclusion
+### Priorité 5 — Décider d’une publication sur les stores
 
-La priorité n’est pas d’ajouter beaucoup de nouvelles pages : c’est de rendre persistants les parcours existants et de permettre aux formateurs de gérer les cours et les séances sans manipuler directement Supabase. L’accès LIVE Teams doit d’abord être testé sur les téléphones avant d’être annoncé comme opérationnel.
+La publication sur les stores est techniquement envisageable plus tard, soit avec une application native, soit avec une enveloppe web adaptée, mais elle demande un choix de produit et une vérification des règles des stores (notamment pour les paiements et les contenus numériques). Il faut aussi préparer les comptes développeur, les fiches de store, les captures d’écran, les icônes, la politique de confidentialité, les déclarations de collecte de données, les tests sur appareils réels et les versions signées.
+
+#### Conclusion — peut-on publier maintenant ?
+
+**Pour un accès web/PWA en bêta contrôlée : oui**, après vérification des migrations, des clés de production, des règles RLS et des parcours réels. Les utilisateurs peuvent déjà ouvrir le site sur iPhone et Android et, selon leur navigateur, l’ajouter à l’écran d’accueil.
+
+**Pour une publication sur l’App Store et Google Play : c’est trop tôt dans l’état constaté du dépôt.** Il n’y a pas de livrable mobile natif prêt à signer et soumettre. Les interfaces de gestion des cours/séances, des demandes et de l’administration existent, mais leurs parcours complets, les paiements en mode test, la conformité légale/confidentialité et les essais sur appareils réels restent à valider. L’existence d’une URL Vercel ou d’une PWA installable ne signifie pas que l’application est prête pour les stores.
+
+La recommandation est de poursuivre d’abord une bêta web/PWA limitée, de terminer les tests et les opérations indispensables, puis de choisir explicitement entre rester une PWA ou financer une vraie expérience mobile distribuée sur les stores. Une simple enveloppe du site ne garantit ni une bonne expérience mobile ni l’acceptation par les stores ; les exigences de publication et de paiement devront être revalidées au moment de la soumission.

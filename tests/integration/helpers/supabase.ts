@@ -39,18 +39,44 @@ export function serviceRoleKey(): string {
  * running, instead of letting every test fail with an opaque fetch error.
  */
 export async function ensureSupabaseReachable(): Promise<void> {
+  const target = new URL(supabaseUrl());
+  if (target.hostname !== "localhost" && target.hostname !== "127.0.0.1") {
+    throw new Error(
+      `Integration tests refuse non-local Supabase target ${target.hostname}. Use a local Supabase instance.`,
+    );
+  }
+
+  let response: Response;
   try {
-    const response = await fetch(new URL("/auth/v1/health", supabaseUrl()), {
+    response = await fetch(new URL("/auth/v1/health", supabaseUrl()), {
       headers: { apikey: anonKey() },
       signal: AbortSignal.timeout(4_000),
     });
-    if (!response.ok) {
-      throw new Error(`Supabase health endpoint answered ${response.status}`);
-    }
   } catch {
     throw new Error(
       `Supabase is not reachable at ${supabaseUrl()}. Run "npx supabase start" ` +
         `(or point SUPABASE_URL / SUPABASE_ANON_KEY at a test project) before running the integration tests.`,
+    );
+  }
+  if (!response.ok) {
+    throw new Error(`Supabase health endpoint answered ${response.status}.`);
+  }
+
+  try {
+    response = await fetch(new URL("/auth/v1/admin/users?page=1&per_page=1", supabaseUrl()), {
+      headers: {
+        apikey: serviceRoleKey(),
+        authorization: `Bearer ${serviceRoleKey()}`,
+      },
+      signal: AbortSignal.timeout(4_000),
+    });
+  } catch {
+    throw new Error(`Supabase is reachable, but its admin API could not be checked at ${supabaseUrl()}.`);
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Supabase is reachable at ${supabaseUrl()}, but SUPABASE_SERVICE_ROLE_KEY is invalid or lacks admin access. ` +
+        "Set the service-role key for the test project before running integration tests.",
     );
   }
 }
@@ -160,7 +186,7 @@ export async function isRegistered(client: SupabaseClient, sessionId: string): P
     .select("id")
     .eq("live_session_id", sessionId);
   if (error) throw new Error(`Unable to read own registration: ${error.message}`);
-  return Boolean(data);
+  return (data?.length ?? 0) > 0;
 }
 
 /**
@@ -200,5 +226,6 @@ export async function loadLearningRecords(client: SupabaseClient, courseKey: str
 }
 
 export async function deleteUser(admin: SupabaseClient, userId: string): Promise<void> {
-  await admin.auth.admin.deleteUser(userId);
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) throw new Error(`Unable to delete test student: ${error.message}`);
 }
