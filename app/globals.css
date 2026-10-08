@@ -90,18 +90,21 @@ select {
   height: clamp(46px, 7vw, 85px);
   flex: 0 0 clamp(46px, 7vw, 85px);
   place-items: center;
-  padding: 3px;
+  padding: 0;
   border: 2px solid rgba(255, 255, 255, 0.95);
   border-radius: 50%;
   background: linear-gradient(135deg, #dbeafe, #ccfbf1);
   box-shadow: 0 8px 20px rgba(30, 64, 175, 0.18);
   cursor: pointer;
+  overflow: hidden;
 }
 .headerAvatarLink img {
-  width: calc(100% - 10px);
-  height: calc(100% - 10px);
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
 }
 .headerAvatarLink:focus-visible {
   outline: 3px solid rgba(37, 99, 235, 0.4);
