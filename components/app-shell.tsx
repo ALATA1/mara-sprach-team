@@ -1551,6 +1551,20 @@ export function AppShell() {
             </div>
             </section>
 
+            <figure className="brandPresentation">
+              <Image
+                src="/logo/Image1.png"
+                alt={localizedText(
+                  "Présentation de Mara-Sprach-Team et de ses services de formation, de progression et d’accompagnement.",
+                  "Vorstellung von Mara-Sprach-Team und seinen Angeboten zum Lernen, Fortschritt und zur Begleitung.",
+                  "An overview of Mara-Sprach-Team and its learning, progress, and support services.",
+                )}
+                width={1536}
+                height={1024}
+                sizes="(max-width: 1228px) calc(100vw - 48px), 1180px"
+              />
+            </figure>
+
             <section
             id="services"
             className="grid"

@@ -428,6 +428,19 @@ select {
   flex-direction: column;
   gap: 12px;
 }
+.brandPresentation {
+  margin: 0 auto 56px;
+  overflow: hidden;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 28px;
+  background: #f4f7fb;
+  box-shadow: 0 20px 55px rgba(23, 37, 84, 0.12);
+}
+.brandPresentation img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
 .videoCoursesPage {
   padding-top: 46px;
   padding-bottom: 72px;
