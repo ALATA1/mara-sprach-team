@@ -2182,6 +2182,27 @@ select {
   align-items: center;
   justify-content: center;
 }
+.profilePhotoEditor {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.profileAvatar {
+  width: 96px;
+  height: 96px;
+  flex: 0 0 96px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.profileAvatarPlaceholder {
+  display: grid;
+  place-items: center;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 2rem;
+  font-weight: 800;
+}
 .closePhotoBtn {
   position: absolute;
   top: 24px;

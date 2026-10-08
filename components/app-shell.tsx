@@ -34,7 +34,7 @@ type Course = {
 
 type AccountRole = "beneficiary" | "teacher" | "volunteer" | "admin";
 type Account = { id: string; firstName: string; email: string; role: AccountRole };
-type ProtectedPage = "video-courses" | "live" | "courses" | "course" | "live-room" | "support";
+type ProtectedPage = "video-courses" | "live" | "courses" | "course" | "live-room" | "support" | "profile";
 type TeacherCourse = { id: string; title: string; language: string; level: string; published: boolean };
 type BillingSubscription = { plan_id: CoursePlanId; status: string; cancel_at_period_end: boolean };
 type LearningRecord = {
@@ -44,6 +44,18 @@ type LearningRecord = {
   score_percentage: number | null;
 };
 type SupportRequest = { id: string; type: string; subject: string; status: string; created_at: string };
+type UserProfile = {
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  country: string | null;
+  city: string | null;
+  birth_date: string | null;
+  preferred_language: "fr" | "de" | "en";
+  german_level: string | null;
+  email: string;
+  avatar_url: string | null;
+};
 
 type LiveSession = {
   id: number | string;
@@ -336,6 +348,12 @@ export function AppShell() {
     [supportDescription, setSupportDescription] = useState(""),
     [supportSubmitting, setSupportSubmitting] = useState(false),
     [supportError, setSupportError] = useState(""),
+    [profileData, setProfileData] = useState<UserProfile | null>(null),
+    [profileLoading, setProfileLoading] = useState(false),
+    [profileSaving, setProfileSaving] = useState(false),
+    [profileBusy, setProfileBusy] = useState(false),
+    [profileError, setProfileError] = useState(""),
+    [profileMessage, setProfileMessage] = useState(""),
     [toast, setToast] = useState(""),
     [photoOpen, setPhotoOpen] = useState(false),
     [logoOpen, setLogoOpen] = useState(false),
@@ -498,6 +516,9 @@ export function AppShell() {
     setSupportRequests([]);
     setSupportSent(false);
     setSupportError("");
+    setProfileData(null);
+    setProfileError("");
+    setProfileMessage("");
     setCompletedGermanLessons({});
     setGermanQuizResults({});
     setQuizScores({});
@@ -539,6 +560,9 @@ export function AppShell() {
         setSupportRequests([]);
         setSupportSent(false);
         setSupportError("");
+        setProfileData(null);
+        setProfileError("");
+        setProfileMessage("");
         setCompletedGermanLessons({});
         setGermanQuizResults({});
         setQuizScores({});
@@ -618,6 +642,35 @@ export function AppShell() {
       active = false;
     };
   }, [page]);
+
+  useEffect(() => {
+    if (page !== "profile" || !user) return;
+    let active = true;
+    setProfileLoading(true);
+    setProfileError("");
+    fetch("/api/profile")
+      .then(async (response) => {
+        const result: { error?: string; profile?: UserProfile } = await response.json();
+        if (!response.ok) throw new Error(result.error || "Impossible de charger votre profil.");
+        if (!result.profile) throw new Error("Le serveur n’a pas renvoyé votre profil.");
+        return result.profile;
+      })
+      .then((profile) => {
+        if (!active) return;
+        setProfileData(profile);
+        setUiLanguage(profile.preferred_language);
+        localStorage.setItem("mara-ui-language-v1", profile.preferred_language);
+      })
+      .catch((error: unknown) => {
+        if (active) setProfileError(error instanceof Error ? error.message : "Impossible de charger votre profil.");
+      })
+      .finally(() => {
+        if (active) setProfileLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [page, user]);
 
   useEffect(() => {
     let active = true;
@@ -750,7 +803,7 @@ export function AppShell() {
     }
   };
   const go = (p: string) => {
-      const protectedPage = (["video-courses", "live", "courses", "course", "live-room", "support"] as const)
+      const protectedPage = (["video-courses", "live", "courses", "course", "live-room", "support", "profile"] as const)
         .find((route) => route === p);
       if (protectedPage) {
         if (authLoading) return;
@@ -760,7 +813,7 @@ export function AppShell() {
           scrollTo(0, 0);
           return;
         }
-        if (protectedPage !== "support" && !paid && user.role !== "teacher" && user.role !== "admin") {
+        if (protectedPage !== "support" && protectedPage !== "profile" && !paid && user.role !== "teacher" && user.role !== "admin") {
           setAuthMessage("Un abonnement mensuel actif est nécessaire pour accéder aux cours et aux LIVE.");
           setPage("payment");
           scrollTo(0, 0);
@@ -1087,8 +1140,9 @@ export function AppShell() {
       const hasCourseAccess = await loadAccount(data.user, !destination);
       if (destination) {
         setPendingProtectedPage(null);
-        setPage(destination === "support" || hasCourseAccess ? destination : "payment");
-        if (destination !== "support" && !hasCourseAccess) setAuthMessage("Choisissez une formule mensuelle pour débloquer les cours et les LIVE.");
+        const accessNotRequired = destination === "support" || destination === "profile";
+        setPage(accessNotRequired || hasCourseAccess ? destination : "payment");
+        if (!accessNotRequired && !hasCourseAccess) setAuthMessage("Choisissez une formule mensuelle pour débloquer les cours et les LIVE.");
         scrollTo(0, 0);
       }
     } catch (error) {
@@ -1316,6 +1370,9 @@ export function AppShell() {
           )}
           {user ? (
             <>
+              <button className="btn ghost" onClick={() => go("profile")}>
+                {localizedText("Mon profil", "Mein Profil", "My profile")}
+              </button>
               {(paid || user.role === "teacher") && (
                 <>
                   <button className="btn ghost hideMobile" onClick={() => go("live")}>LIVE</button>
@@ -2109,6 +2166,187 @@ export function AppShell() {
               </button>
             )}
           </div>
+        </main>
+      )}
+      {page === "profile" && (
+        <main className="shell">
+          <h1>Mon profil / Mes informations</h1>
+          <p className="muted">Ces informations restent privées et ne sont visibles que par vous.</p>
+          {profileLoading && <p role="status">Chargement du profil…</p>}
+          {profileError && <p className="authError" role="alert">{profileError}</p>}
+          {profileData && (
+            <section className="card">
+              <div className="profilePhotoEditor">
+                {profileData.avatar_url
+                  ? <Image src={profileData.avatar_url} alt="Photo de profil" width={96} height={96} unoptimized className="profileAvatar" />
+                  : <div className="profileAvatar profileAvatarPlaceholder" aria-label="Aucune photo de profil">{profileData.first_name.slice(0, 1).toUpperCase() || "?"}</div>}
+                <div>
+                  <label htmlFor="profile-avatar">Photo de profil (JPEG, PNG ou WebP, 5 Mo maximum)</label>
+                  <input
+                    id="profile-avatar"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={profileBusy}
+                    onChange={async (event) => {
+                      const input = event.currentTarget;
+                      const file = input.files?.[0];
+                      if (!file) return;
+                      setProfileBusy(true);
+                      setProfileError("");
+                      setProfileMessage("");
+                      try {
+                        const form = new FormData();
+                        form.set("avatar", file);
+                        const response = await fetch("/api/profile", { method: "POST", body: form });
+                        const result: { error?: string; avatar_url?: string } = await response.json();
+                        if (!response.ok) throw new Error(result.error || "Impossible d’enregistrer cette photo.");
+                        setProfileData((current) => current ? { ...current, avatar_url: result.avatar_url ?? null } : current);
+                        setProfileMessage("Photo de profil mise à jour.");
+                      } catch (error) {
+                        setProfileError(error instanceof Error ? error.message : "Impossible d’enregistrer cette photo.");
+                      } finally {
+                        setProfileBusy(false);
+                        input.value = "";
+                      }
+                    }}
+                  />
+                  {profileData.avatar_url && (
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      disabled={profileBusy}
+                      onClick={async () => {
+                        setProfileBusy(true);
+                        setProfileError("");
+                        setProfileMessage("");
+                        try {
+                          const response = await fetch("/api/profile", { method: "DELETE" });
+                          const result: { error?: string; avatar_url?: string | null } = await response.json();
+                          if (!response.ok) throw new Error(result.error || "Impossible de supprimer cette photo.");
+                          setProfileData((current) => current ? { ...current, avatar_url: result.avatar_url ?? null } : current);
+                          setProfileMessage("Photo de profil supprimée.");
+                        } catch (error) {
+                          setProfileError(error instanceof Error ? error.message : "Impossible de supprimer cette photo.");
+                        } finally {
+                          setProfileBusy(false);
+                        }
+                      }}
+                    >
+                      Supprimer ma photo
+                    </button>
+                  )}
+                </div>
+              </div>
+              <form
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  setProfileSaving(true);
+                  setProfileError("");
+                  setProfileMessage("");
+                  try {
+                    const response = await fetch("/api/profile", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        first_name: profileData.first_name,
+                        last_name: profileData.last_name,
+                        email: profileData.email,
+                        phone: profileData.phone,
+                        country: profileData.country,
+                        city: profileData.city,
+                        birth_date: profileData.birth_date,
+                        preferred_language: profileData.preferred_language,
+                        german_level: profileData.german_level,
+                      }),
+                    });
+                    const result: { error?: string; emailChangePending?: boolean; profile?: Partial<UserProfile> } = await response.json();
+                    if (!response.ok) throw new Error(result.error || "Impossible d’enregistrer votre profil.");
+                    if (!result.profile) throw new Error("Le serveur n’a pas confirmé les modifications.");
+                    setProfileData((current) => current ? { ...current, ...result.profile } : current);
+                    setUser((current) => current ? { ...current, firstName: result.profile?.first_name ?? current.firstName } : current);
+                    setUiLanguage(profileData.preferred_language);
+                    localStorage.setItem("mara-ui-language-v1", profileData.preferred_language);
+                    setProfileMessage(result.emailChangePending
+                      ? "Profil enregistré. Confirmez la nouvelle adresse e-mail depuis le message envoyé par Supabase."
+                      : "Profil enregistré.");
+                  } catch (error) {
+                    setProfileError(error instanceof Error ? error.message : "Impossible d’enregistrer votre profil.");
+                  } finally {
+                    setProfileSaving(false);
+                  }
+                }}
+              >
+                <div className="field">
+                  <label htmlFor="profile-first-name">Prénom</label>
+                  <input id="profile-first-name" autoComplete="given-name" maxLength={100} required value={profileData.first_name}
+                    onChange={(event) => setProfileData((current) => current ? { ...current, first_name: event.target.value } : current)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-last-name">Nom</label>
+                  <input id="profile-last-name" autoComplete="family-name" maxLength={100} required value={profileData.last_name}
+                    onChange={(event) => setProfileData((current) => current ? { ...current, last_name: event.target.value } : current)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-email">Adresse e-mail</label>
+                  <input id="profile-email" type="email" autoComplete="email" required value={profileData.email}
+                    onChange={(event) => setProfileData((current) => current ? { ...current, email: event.target.value } : current)} />
+                  <small>Une confirmation sera demandée avant que la nouvelle adresse remplace l’actuelle.</small>
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-phone">Téléphone</label>
+                  <input id="profile-phone" type="tel" autoComplete="tel" maxLength={40} value={profileData.phone ?? ""}
+                    onChange={(event) => setProfileData((current) => current ? { ...current, phone: event.target.value || null } : current)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-country">Pays</label>
+                  <input id="profile-country" list="profile-country-options" autoComplete="country-name" maxLength={100} value={profileData.country ?? ""}
+                    onChange={(event) => setProfileData((current) => current ? { ...current, country: event.target.value || null } : current)} />
+                  <datalist id="profile-country-options">
+                    {["France", "Allemagne", "Cameroun", "Côte d’Ivoire", "Sénégal", "Mali", "Burkina Faso", "République démocratique du Congo"].map((country) => (
+                      <option key={country} value={country} />
+                    ))}
+                  </datalist>
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-city">Ville</label>
+                  <input id="profile-city" autoComplete="address-level2" maxLength={100} value={profileData.city ?? ""}
+                    onChange={(event) => setProfileData((current) => current ? { ...current, city: event.target.value || null } : current)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-birth-date">Date de naissance (facultatif)</label>
+                  <input id="profile-birth-date" type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)} value={profileData.birth_date ?? ""}
+                    onChange={(event) => setProfileData((current) => current ? { ...current, birth_date: event.target.value || null } : current)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-language">Langue préférée</label>
+                  <select id="profile-language" value={profileData.preferred_language}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === "fr" || value === "de" || value === "en") {
+                        setProfileData((current) => current ? { ...current, preferred_language: value } : current);
+                      }
+                    }}>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="profile-german-level">Niveau d’allemand (facultatif)</label>
+                  <select id="profile-german-level" value={profileData.german_level ?? ""}
+                    onChange={(event) => setProfileData((current) => current ? { ...current, german_level: event.target.value || null } : current)}>
+                    <option value="">Non renseigné</option>
+                    {["A1", "A2", "B1", "B2", "C1", "C2"].map((level) => <option key={level} value={level}>{level}</option>)}
+                  </select>
+                </div>
+                {profileError && <p className="authError" role="alert">{profileError}</p>}
+                {profileMessage && <p className="authMessage" role="status">{profileMessage}</p>}
+                <button type="submit" className="btn primary" disabled={profileSaving || profileLoading}>
+                  {profileSaving ? "Enregistrement…" : "Enregistrer mes informations"}
+                </button>
+              </form>
+            </section>
+          )}
         </main>
       )}
       {page === "dashboard" && (

@@ -12,6 +12,7 @@ Le code principal de l’interface se trouve dans [`components/app-shell.tsx`](.
 
 - Inscription, connexion, confirmation d’adresse e-mail et réinitialisation de mot de passe avec Supabase Auth.
 - Rôles étudiant, formateur et administrateur prévus dans le profil Supabase.
+- Espace « Mon profil » privé : photo, prénom, nom, adresse e-mail avec confirmation, téléphone, pays, ville, date de naissance facultative, langue préférée et niveau d’allemand.
 - Paiement ponctuel de 10 € par Stripe, avec activation de l’accès après confirmation du paiement, si les clés et le webhook sont configurés.
 - Catalogue de cours, contenus de français et d’allemand, parcours d’allemand A1 à B1 et quiz.
 - Affichage de vidéos hébergées avec l’application et bibliothèque de documents de cours avec Supabase Storage.
@@ -57,7 +58,7 @@ Le formulaire crée et affiche les demandes liées au compte étudiant. Il manqu
 
 ### 6. Gestion des comptes et des paiements
 
-Les demandes d’accès formateur doivent être examinées et activées séparément par l’administration. L’application n’a pas encore de tableau de bord pour approuver les demandes, gérer les rôles, traiter les remboursements ou accompagner les paiements en échec.
+Les utilisateurs peuvent désormais modifier leur profil personnel. Les demandes d’accès formateur doivent être examinées et activées séparément par l’administration. L’application n’a pas encore de tableau de bord pour approuver les demandes, gérer les rôles, traiter les remboursements ou accompagner les paiements en échec.
 
 ### 7. Disponibilité, confidentialité et exploitation
 
